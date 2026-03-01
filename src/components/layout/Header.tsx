@@ -1,6 +1,6 @@
 "use client";
 
-import { FileText, Home, LogOut, Send } from "lucide-react";
+import { FileText, Home, LogOut, Send, Users } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -47,6 +47,16 @@ export function AppHeader() {
 							>
 								<Send className="h-4 w-4" />
 								Überweisungen
+							</Button>
+						</Link>
+						<Link href="/banking/beneficiaries">
+							<Button
+								variant={isActive("/banking") ? "default" : "ghost"}
+								size="sm"
+								className="gap-2"
+							>
+								<Users className="h-4 w-4" />
+								Begünstigte
 							</Button>
 						</Link>
 					</nav>

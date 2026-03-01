@@ -1,4 +1,4 @@
-import { FileText, Send } from "lucide-react";
+import { FileText, Send, Users } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import {
@@ -65,7 +65,7 @@ export default async function DashboardPage() {
 			)}
 
 			{/* Quick Actions */}
-			<div className="grid gap-4 md:grid-cols-2">
+			<div className="grid gap-4 md:grid-cols-3">
 				<Card>
 					<CardHeader>
 						<CardTitle className="flex items-center gap-2">
@@ -97,6 +97,23 @@ export default async function DashboardPage() {
 						<Link href="/transfers">
 							<Button variant="outline" className="w-full">
 								Überweisungen anzeigen
+							</Button>
+						</Link>
+					</CardContent>
+				</Card>
+
+				<Card>
+					<CardHeader>
+						<CardTitle className="flex items-center gap-2">
+							<Users className="h-5 w-5" />
+							Begünstigte
+						</CardTitle>
+						<CardDescription>SEPA-Begünstigte verwalten</CardDescription>
+					</CardHeader>
+					<CardContent>
+						<Link href="/banking/beneficiaries">
+							<Button variant="outline" className="w-full">
+								Begünstigte anzeigen
 							</Button>
 						</Link>
 					</CardContent>

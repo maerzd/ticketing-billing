@@ -2,6 +2,8 @@ import { Suspense } from "react";
 import { Toaster } from "sonner";
 import { AppHeader } from "@/components/layout/Header";
 
+export const dynamic = "force-dynamic";
+
 export default function InvoicesLayout({
 	children,
 }: Readonly<{

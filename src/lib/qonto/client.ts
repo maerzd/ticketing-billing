@@ -1,6 +1,7 @@
 import type { z } from "zod";
+import { ZodError } from "zod";
 import env from "@/env";
-import { AppError, QontoAPIErrorHandler } from "@/lib/errors";
+import { AppError, QontoAPIErrorHandler, ValidationError } from "@/lib/errors";
 import type { QontoAPIError } from "@/types/qonto";
 
 const SANDBOX_API_BASE = "https://thirdparty-sandbox.staging.qonto.co/v2";
@@ -23,7 +24,7 @@ export class QontoClient {
 	}
 
 	private async request<T>(
-		method: "GET" | "POST" | "PUT" | "DELETE",
+		method: "GET" | "POST" | "PUT" | "DELETE" | "PATCH",
 		endpoint: string,
 		schema: z.ZodSchema<T>,
 		body?: unknown,
@@ -71,11 +72,11 @@ export class QontoClient {
 		} else {
 			data = await response.text();
 		}
-		console.log(`Qonto API response from ${endpoint}:`, {
-			status: response.status,
-			statusText: response.statusText,
-			body: data,
-		});
+		// console.log(`Qonto API response from ${endpoint}:`, {
+		// 	status: response.status,
+		// 	statusText: response.statusText,
+		// 	body: data,
+		// });
 		// Check for API errors
 		if (!response.ok) {
 			if (typeof data === "object" && data !== null && "errors" in data) {
@@ -101,8 +102,22 @@ export class QontoClient {
 			throw new AppError(errorMessage, response.status);
 		}
 
-		// Validate and return response
-		return schema.parse(data);
+		// Validate and return response (convert Zod errors to our ValidationError)
+		try {
+			return schema.parse(data);
+		} catch (err) {
+			if (err instanceof ZodError) {
+				const details = err.issues
+					.map((e) => `${e.path.join(".") || "<root>"}: ${e.message}`)
+					.join("; ");
+
+				throw new ValidationError(
+					`Response validation error at ${endpoint}: ${details}`,
+				);
+			}
+
+			throw err;
+		}
 	}
 
 	async get<T>(
@@ -144,5 +159,21 @@ export class QontoClient {
 		extraHeaders?: Record<string, string>,
 	): Promise<T> {
 		return this.request("PUT", endpoint, schema, body, undefined, extraHeaders);
+	}
+
+	async patch<T>(
+		endpoint: string,
+		schema: z.ZodSchema<T>,
+		body?: unknown,
+		extraHeaders?: Record<string, string>,
+	): Promise<T> {
+		return this.request(
+			"PATCH",
+			endpoint,
+			schema,
+			body,
+			undefined,
+			extraHeaders,
+		);
 	}
 }

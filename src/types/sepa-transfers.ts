@@ -19,7 +19,7 @@ const transferSchema = z.object({
 	status: QontoTransferStatusSchema,
 	beneficiary_id: z.uuid(),
 	reference: z.string(),
-	note: z.string(),
+	note: z.string().nullable(),
 	declined_reason: z.string().nullable(),
 	scheduled_date: z.iso.date().nullable(),
 	created_at: z.iso.datetime(),

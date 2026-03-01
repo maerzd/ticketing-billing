@@ -18,36 +18,7 @@ export const QontoOAuthErrorSchema = z.object({
 
 export type QontoOAuthError = z.infer<typeof QontoOAuthErrorSchema>;
 
-// Organization Types
-export const QontoOrganizationSchema = z.object({
-	id: z.string(),
-	name: z.string(),
-	slug: z.string(),
-	legal_name: z.string().nullable().optional(),
-	locale: z.string(),
-	legal_share_capital: z.number(),
-	legal_country: z.string(),
-	legal_registration_date: z.string().nullable().optional(),
-	legal_form: z.string(),
-	legal_address: z.string(),
-	legal_sector: z.string().nullable().optional(),
-	contract_signed_at: z.string().nullable().optional(),
-	legal_number: z.string().nullable().optional(),
-	bank_accounts: z.array(z.object({})),
-	logo_url: z.string().nullable().optional(),
-	created_at: z.string().optional(),
-	updated_at: z.string().optional(),
-});
 
-export type QontoOrganization = z.infer<typeof QontoOrganizationSchema>;
-
-export const QontoOrganizationResponseSchema = z.object({
-	organization: QontoOrganizationSchema,
-});
-
-export type QontoOrganizationResponse = z.infer<
-	typeof QontoOrganizationResponseSchema
->;
 
 const QontoPaginationSchema = z.object({
 	total: z.coerce.number().default(0),
@@ -56,37 +27,7 @@ const QontoPaginationSchema = z.object({
 	total_pages: z.coerce.number().default(1),
 });
 
-// SEPA Beneficiary Types
-export const QontoSepaBeneficiarySchema = z.object({
-	id: z.string(),
-	name: z.string(),
-	iban: z.string().nullable(),
-	bic: z.string().nullable(),
-	status: z.string(),
-	trusted: z.boolean(),
-	created_at: z.iso.datetime(),
-	updated_at: z.iso.datetime(),
-	email: z.string().nullable(),
-	activity_tag: z.string().nullable(),
-});
-
-export type QontoSepaBeneficiary = z.infer<typeof QontoSepaBeneficiarySchema>;
-
-export const QontoSepaBeneficiaryListSchema = z.object({
-	beneficiaries: z.array(QontoSepaBeneficiarySchema),
-	meta: z.object({
-		current_page: z.number(),
-		next_page: z.number().optional().nullable(),
-		prev_page: z.number().optional().nullable(),
-		total_pages: z.number(),
-		total_count: z.number(),
-		per_page: z.number(),
-	}),
-});
-
-export type QontoSepaBeneficiaryList = z.infer<
-	typeof QontoSepaBeneficiaryListSchema
->;
+// Verification of Payee (VOP) Types
 
 // Verification of Payee (VOP) Types
 export const QontoVerifyPayeeSchema = z.object({
@@ -191,42 +132,7 @@ export type QontoExternalTransferList = z.infer<
 	typeof QontoExternalTransferListSchema
 >;
 
-// Bank account types
-export const QontoBankAccountSchema = z.object({
-	id: z.string(),
-	name: z.string(),
-	organization_id: z.string(),
-	status: z.string(),
-	main: z.boolean(),
-	iban: z.string().nullable().optional(),
-	bic: z.string().nullable().optional(),
-	currency: z.string().optional(),
-	balance: z.float32().optional(),
-	balance_cents: z.float32().optional(),
-	authorized_balance: z.string().optional(),
-	authorized_balance_cents: z.int().optional(),
-	is_external_account: z.boolean().optional(),
-	account_number: z.string().optional(),
-	created_at: z.string().optional(),
-	updated_at: z.string().optional(),
-});
 
-export const QontoBankAccountListSchema = z
-	.union([
-		z.object({ bank_accounts: z.array(QontoBankAccountSchema) }),
-		z.array(QontoBankAccountSchema),
-	])
-	.transform((input) => {
-		if (Array.isArray(input)) {
-			return { bank_accounts: input };
-		}
-
-		return input;
-	});
-
-export type QontoBankAccount = z.infer<typeof QontoBankAccountSchema>;
-
-export type QontoBankAccountList = z.infer<typeof QontoBankAccountListSchema>;
 
 // API Request/Response Wrappers
 export const QontoAPIErrorSchema = z.object({

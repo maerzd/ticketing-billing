@@ -5,20 +5,16 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { createTransfer, verifyTransferPayee } from "@/actions/transfers";
 import { Button } from "@/components/ui/button";
-import {
-	Card,
-	CardContent,
-	CardDescription,
-	CardHeader,
-	CardTitle,
-} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import type { QontoBankAccount, QontoSepaBeneficiary } from "@/types/qonto";
+import type { QontoSepaBeneficiary } from "@/types/beneficiaries";
+import type { QontoBankAccount } from "@/types/organization";
 
 interface TransferFormProps {
 	beneficiaries: QontoSepaBeneficiary[];
 	bankAccounts?: QontoBankAccount[];
+	onCancel?: () => void;
+	onSuccess?: () => void;
 }
 
 interface VOPState {
@@ -40,6 +36,8 @@ interface FormData {
 export function TransferForm({
 	beneficiaries,
 	bankAccounts,
+	onCancel,
+	onSuccess,
 }: Readonly<TransferFormProps>) {
 	const router = useRouter();
 	const [isLoading, setIsLoading] = useState(false);
@@ -208,6 +206,7 @@ export function TransferForm({
 
 			if (result.success) {
 				toast.success("Transfer created successfully!");
+				onSuccess?.();
 				router.push("/transfers");
 			} else {
 				toast.error(`Failed to create transfer: ${result.error}`);
@@ -230,134 +229,124 @@ export function TransferForm({
 		vopState.isVerifying;
 
 	return (
-		<Card className="max-w-2xl">
-			<CardHeader>
-				<CardTitle>Überweisung erstellen</CardTitle>
-				<CardDescription>
-					Neue SEPA-Überweisung an einen Zahlungsempfänger erstellen
-				</CardDescription>
-			</CardHeader>
-			<CardContent>
-				<form onSubmit={handleSubmit} className="space-y-6">
-					<div>
-						<Label htmlFor="bank_account_id">Von Konto</Label>
-						<select
-							id="bank_account_id"
-							name="bank_account_id"
-							required
-							value={formData.bank_account_id ?? ""}
-							onChange={handleChange}
-							disabled={isLoading || !(bankAccounts && bankAccounts.length > 0)}
-							className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-base text-slate-900 placeholder:text-slate-400 focus:border-slate-950 focus:outline-none focus:ring-1 focus:ring-slate-950 disabled:cursor-not-allowed disabled:opacity-50"
-						>
-							<option value="">
-								{bankAccounts && bankAccounts.length > 0
-									? "Konto auswählen"
-									: "Keine Konten verfügbar"}
+		<form onSubmit={handleSubmit} className="space-y-6">
+			<div>
+				<Label htmlFor="bank_account_id">Von Konto</Label>
+				<select
+					id="bank_account_id"
+					name="bank_account_id"
+					required
+					value={formData.bank_account_id ?? ""}
+					onChange={handleChange}
+					disabled={isLoading || !(bankAccounts && bankAccounts.length > 0)}
+					className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-base text-slate-900 placeholder:text-slate-400 focus:border-slate-950 focus:outline-none focus:ring-1 focus:ring-slate-950 disabled:cursor-not-allowed disabled:opacity-50"
+				>
+					<option value="">
+						{bankAccounts && bankAccounts.length > 0
+							? "Konto auswählen"
+							: "Keine Konten verfügbar"}
+					</option>
+					{bankAccounts?.map((acct) => (
+						<option key={acct.id} value={acct.id}>
+							{acct.name || acct.iban || acct.id}
+						</option>
+					))}
+				</select>
+
+				<div className="mt-4">
+					<Label htmlFor="beneficiary_id">Zahlungsempfänger</Label>
+					<select
+						id="beneficiary_id"
+						name="beneficiary_id"
+						required
+						value={formData.beneficiary_id}
+						onChange={handleChange}
+						disabled={isLoading || beneficiaries.length === 0}
+						className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-base text-slate-900 placeholder:text-slate-400 focus:border-slate-950 focus:outline-none focus:ring-1 focus:ring-slate-950 disabled:cursor-not-allowed disabled:opacity-50"
+					>
+						<option value="">
+							{beneficiaries.length === 0
+								? "Keine Empfänger verfügbar"
+								: "Empfänger auswählen"}
+						</option>
+						{beneficiaries.map((beneficiary) => (
+							<option key={beneficiary.id} value={beneficiary.id}>
+								{beneficiary.name} ({beneficiary.iban})
 							</option>
-							{bankAccounts?.map((acct) => (
-								<option key={acct.id} value={acct.id}>
-									{acct.name || acct.iban || acct.id}
-								</option>
-							))}
-						</select>
+						))}
+					</select>
 
-						<div className="mt-4">
-							<Label htmlFor="beneficiary_id">Zahlungsempfänger</Label>
-							<select
-								id="beneficiary_id"
-								name="beneficiary_id"
-								required
-								value={formData.beneficiary_id}
-								onChange={handleChange}
-								disabled={isLoading || beneficiaries.length === 0}
-								className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-base text-slate-900 placeholder:text-slate-400 focus:border-slate-950 focus:outline-none focus:ring-1 focus:ring-slate-950 disabled:cursor-not-allowed disabled:opacity-50"
-							>
-								<option value="">
-									{beneficiaries.length === 0
-										? "Keine Empfänger verfügbar"
-										: "Empfänger auswählen"}
-								</option>
-								{beneficiaries.map((beneficiary) => (
-									<option key={beneficiary.id} value={beneficiary.id}>
-										{beneficiary.name} ({beneficiary.iban})
-									</option>
-								))}
-							</select>
+					{vopState.isVerifying && (
+						<p className="mt-2 text-slate-600 text-sm">
+							Empfängerüberprüfung...
+						</p>
+					)}
 
-							{vopState.isVerifying && (
-								<p className="mt-2 text-slate-600 text-sm">
-									Empfängerüberprüfung...
-								</p>
-							)}
-
-							{vopDisplay && (
-								<div
-									className={`mt-2 rounded-md p-3 text-sm ${getVOPDisplayClassName(vopDisplay.type)}`}
-								>
-									{vopDisplay.message}
-								</div>
-							)}
-						</div>
-					</div>
-
-					<div>
-						<Label htmlFor="amount_in_cents">Betrag (EUR)</Label>
-						<Input
-							id="amount_in_cents"
-							name="amount_in_cents"
-							type="number"
-							step="0.01"
-							required
-							value={formData.amount_in_cents / 100}
-							onChange={handleChange}
-							placeholder="0.00"
-							disabled={isLoading}
-						/>
-					</div>
-
-					<div>
-						<Label htmlFor="label">Beschreibung</Label>
-						<Input
-							id="label"
-							name="label"
-							type="text"
-							required
-							value={formData.label}
-							onChange={handleChange}
-							placeholder="Beschreibung der Überweisung"
-							disabled={isLoading}
-						/>
-					</div>
-
-					<div>
-						<Label htmlFor="reference">Verwendungszweck (optional)</Label>
-						<Input
-							id="reference"
-							name="reference"
-							type="text"
-							value={formData.reference}
-							onChange={handleChange}
-							placeholder="z.B. Rechnung #12345"
-							disabled={isLoading}
-						/>
-					</div>
-
-					<div className="flex gap-4">
-						<Button type="submit" disabled={isSubmitDisabled}>
-							{isLoading ? "Wird erstellt..." : "Überweisung erstellen"}
-						</Button>
-						<Button
-							type="button"
-							variant="outline"
-							onClick={() => router.back()}
-							disabled={isLoading}
+					{vopDisplay && (
+						<div
+							className={`mt-2 rounded-md p-3 text-sm ${getVOPDisplayClassName(vopDisplay.type)}`}
 						>
-							Abbrechen
-						</Button>
-					</div>
-				</form>
-			</CardContent>
-		</Card>
+							{vopDisplay.message}
+						</div>
+					)}
+				</div>
+			</div>
+
+			<div>
+				<Label htmlFor="amount_in_cents">Betrag (EUR)</Label>
+				<Input
+					id="amount_in_cents"
+					name="amount_in_cents"
+					type="number"
+					step="0.01"
+					required
+					value={formData.amount_in_cents / 100}
+					onChange={handleChange}
+					placeholder="0.00"
+					disabled={isLoading}
+				/>
+			</div>
+
+			<div>
+				<Label htmlFor="label">Beschreibung</Label>
+				<Input
+					id="label"
+					name="label"
+					type="text"
+					required
+					value={formData.label}
+					onChange={handleChange}
+					placeholder="Beschreibung der Überweisung"
+					disabled={isLoading}
+				/>
+			</div>
+
+			<div>
+				<Label htmlFor="reference">Verwendungszweck (optional)</Label>
+				<Input
+					id="reference"
+					name="reference"
+					type="text"
+					value={formData.reference}
+					onChange={handleChange}
+					placeholder="z.B. Rechnung #12345"
+					disabled={isLoading}
+				/>
+			</div>
+
+			<div className="flex gap-4">
+				<Button type="submit" disabled={isSubmitDisabled}>
+					{isLoading ? "Wird erstellt..." : "Überweisung erstellen"}
+				</Button>
+				<Button
+					type="button"
+					variant="outline"
+					onClick={() => (onCancel ? onCancel() : router.back())}
+					disabled={isLoading}
+				>
+					Abbrechen
+				</Button>
+			</div>
+		</form>
 	);
 }

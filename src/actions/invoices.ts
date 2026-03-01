@@ -25,8 +25,6 @@ export async function createInvoice(input: CreateInvoiceInput) {
 		const message =
 			error instanceof AppError ? error.message : "Failed to create invoice";
 
-		console.error("Create invoice error:", message);
-
 		return {
 			success: false,
 			error: message,

@@ -4,7 +4,7 @@ import { AppHeader } from "@/components/layout/Header";
 
 export const dynamic = "force-dynamic";
 
-export default function DashboardLayout({
+export default function BankingLayout({
 	children,
 }: Readonly<{
 	children: React.ReactNode;

@@ -1,8 +1,8 @@
 import { getAccessToken } from "@/lib/auth";
 import { AppError } from "@/lib/errors";
 import { QontoClient } from "@/lib/qonto/client";
-import { BankAccountsService } from "@/lib/qonto/services/bankAccounts";
 import { BeneficiariesService } from "@/lib/qonto/services/beneficiaries";
+import { ClientsService } from "@/lib/qonto/services/clients";
 import { InvoicesService } from "@/lib/qonto/services/invoices";
 import { OrganizationService } from "@/lib/qonto/services/organization";
 import { TransfersService } from "@/lib/qonto/services/transfers";
@@ -115,22 +115,22 @@ export async function queryBeneficiaries(page: number = 1) {
 	}
 }
 
-export async function queryBankAccounts(page: number = 1) {
+export async function queryClients(page: number = 1) {
 	try {
 		const accessToken = await getAccessToken();
 		const client = new QontoClient({ accessToken });
-		const service = new BankAccountsService(client);
+		const service = new ClientsService(client);
 
-		const result = await service.listBankAccounts(page);
+		const result = await service.listClients(page);
 
 		return {
 			success: true,
 			data: result,
 		} as const;
 	} catch (error) {
-		const message = extractErrorMessage(error, "Failed to fetch bank accounts");
+		const message = extractErrorMessage(error, "Failed to fetch clients");
 
-		console.error("Query bank accounts error:", message);
+		console.error("Query clients error:", message);
 
 		return {
 			success: false,

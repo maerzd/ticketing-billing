@@ -1,7 +1,5 @@
-import { Plus } from "lucide-react";
-import Link from "next/link";
+import { InvoiceCreateDialog } from "@/app/invoices/InvoiceCreateDialog";
 import { InvoiceStatusBadge } from "@/components/my-ui/invoice-status-badge";
-import { Button } from "@/components/ui/button";
 import {
 	Card,
 	CardContent,
@@ -17,10 +15,12 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
-import { queryInvoices } from "@/lib/qonto/queries";
+import { queryClients, queryInvoices } from "@/lib/qonto/queries";
 
 export default async function InvoicesPage() {
 	const result = await queryInvoices();
+	const clientsResult = await queryClients();
+	const clients = clientsResult.success ? clientsResult.data.clients : [];
 
 	const formatDate = (dateString: string) => {
 		return new Date(dateString).toLocaleDateString("en-GB", {
@@ -45,12 +45,7 @@ export default async function InvoicesPage() {
 					<h1 className="font-bold text-3xl text-slate-900">Rechnungen</h1>
 					<p className="mt-2 text-slate-600">Ausgehende Rechnungen</p>
 				</div>
-				<Link href="/invoices/create">
-					<Button className="gap-2">
-						<Plus className="h-4 w-4" />
-						Rechnung erstellen
-					</Button>
-				</Link>
+				<InvoiceCreateDialog clients={clients} />
 			</div>
 
 			{/* Invoices List */}

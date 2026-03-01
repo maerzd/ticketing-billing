@@ -1,6 +1,7 @@
 import env from "@/env";
 import { OAuthError } from "@/lib/errors";
 import type { QontoOAuthError, QontoTokenResponse } from "@/types/qonto";
+import { getBaseUrl } from "../utils";
 
 const SANDBOX_AUTH_URL = "https://oauth-sandbox.staging.qonto.co/oauth2/auth";
 const SANDBOX_TOKEN_URL = "https://oauth-sandbox.staging.qonto.co/oauth2/token";
@@ -38,8 +39,8 @@ const SCOPES = [
  */
 export function getAuthorizationUrl(state: string): string {
 	const params = new URLSearchParams({
-		client_id: env.NEXT_PUBLIC_QONTO_CLIENT_ID,
-		redirect_uri: env.NEXT_PUBLIC_QONTO_REDIRECT_URI,
+		client_id: env.QONTO_CLIENT_ID,
+		redirect_uri: `${getBaseUrl()}/api/auth/callback`,
 		response_type: "code",
 		scope: SCOPES.join(" "),
 		state,
@@ -58,9 +59,9 @@ export async function exchangeCodeForToken(
 	const body = new URLSearchParams({
 		grant_type: "authorization_code",
 		code,
-		client_id: env.NEXT_PUBLIC_QONTO_CLIENT_ID,
+		client_id: env.QONTO_CLIENT_ID,
 		client_secret: env.QONTO_CLIENT_SECRET,
-		redirect_uri: env.NEXT_PUBLIC_QONTO_REDIRECT_URI,
+		redirect_uri: `${getBaseUrl()}/api/auth/callback`,
 	}).toString();
 
 	const response = await fetch(tokenUrl, {
@@ -109,7 +110,7 @@ export async function refreshAccessToken(
 		body: new URLSearchParams({
 			grant_type: "refresh_token",
 			refresh_token: refreshToken,
-			client_id: env.NEXT_PUBLIC_QONTO_CLIENT_ID,
+			client_id: env.QONTO_CLIENT_ID,
 			client_secret: env.QONTO_CLIENT_SECRET,
 		}).toString(),
 	});

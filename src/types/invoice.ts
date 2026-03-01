@@ -1,9 +1,9 @@
 import { z } from "zod";
 import { QontoMetaSchema } from "./shared";
 
-const MoneySchema = z.object({
-	value: z.string().optional(),
-	currency: z.string().optional(),
+export const MoneySchema = z.object({
+	value: z.string(),
+	currency: z.string(),
 });
 
 const AddressSchema = z.object({
@@ -20,7 +20,7 @@ const DiscountSchema = z.object({
 	amount: MoneySchema.optional(),
 });
 
-const ItemSchema = z.object({
+export const ItemSchema = z.object({
 	title: z.string().optional(),
 	description: z.string().optional(),
 	quantity: z.string().optional(),
@@ -222,7 +222,7 @@ export const ClientInvoiceSchema = z.object({
 	performance_start_date: z.iso.date().or(z.literal("")),
 	performance_end_date: z.iso.date().or(z.literal("")),
 	created_at: z.iso.datetime({ offset: true }),
-	finalized_at: z.iso.datetime({ offset: true }),
+	finalized_at: z.iso.datetime({ offset: true }).or(z.literal("")),
 	paid_at: z.iso.datetime({ offset: true }).or(z.literal("")),
 	stamp_duty_amount: z.string().min(4).max(15),
 	items: z.array(ItemSchema),

@@ -1,7 +1,7 @@
 import { Plus } from "lucide-react";
-import Link from "next/link";
+import { TransferCreateDialog } from "@/app/transfers/TransferCreateDialog";
+import { BeneficiaryCreateDialog } from "@/components/forms/BeneficiaryCreateDialog";
 import { TransferStatusBadge } from "@/components/my-ui/transfer-status-badge";
-import { Button } from "@/components/ui/button";
 import {
 	Card,
 	CardContent,
@@ -17,10 +17,22 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
-import { queryTransfers } from "@/lib/qonto/queries";
+import {
+	queryBeneficiaries,
+	queryOrganization,
+	queryTransfers,
+} from "@/lib/qonto/queries";
 
 export default async function TransfersPage() {
 	const result = await queryTransfers();
+	const beneficiariesResult = await queryBeneficiaries();
+	const beneficiaries = beneficiariesResult.success
+		? beneficiariesResult.data.beneficiaries
+		: [];
+	const organizationResult = await queryOrganization();
+	const bankAccounts = organizationResult.success
+		? organizationResult.data.organization.bank_accounts
+		: [];
 
 	const formatDate = (dateString: string | null) => {
 		if (!dateString) return "—";
@@ -48,12 +60,16 @@ export default async function TransfersPage() {
 						Verwalten Sie SEPA-Überweisungen an Begünstigte
 					</p>
 				</div>
-				<Link href="/transfers/new">
-					<Button className="gap-2">
-						<Plus className="h-4 w-4" />
-						Neue Überweisung
-					</Button>
-				</Link>
+				<div className="flex items-center gap-2">
+					<TransferCreateDialog
+						beneficiaries={beneficiaries}
+						bankAccounts={bankAccounts}
+					/>
+					<BeneficiaryCreateDialog
+						triggerVariant="outline"
+						triggerLabel="Begünstigten hinzufügen"
+					/>
+				</div>
 			</div>
 
 			{/* Transfers List */}
