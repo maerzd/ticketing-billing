@@ -1,0 +1,17 @@
+{
+	"biome.enabled": true,
+	"files.autoSave": "onFocusChange",
+	"editor.formatOnSave": true,
+	"files.autoSaveWorkspaceFilesOnly": true,
+	"editor.defaultFormatter": "biomejs.biome",
+	"editor.codeActionsOnSave": {
+		"source.fixAll.biome": "always"
+	},
+	"github.copilot.chat.codeGeneration.useInstructionFiles": true,
+	"files.associations": {
+		"*.css": "tailwindcss"
+	},
+	"editor.quickSuggestions": {
+		"strings": "on"
+	}
+}
