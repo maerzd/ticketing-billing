@@ -29,12 +29,11 @@ export function proxy(request: NextRequest) {
 		return NextResponse.next();
 	}
 
-	// Check for authentication tokens
-	const accessToken = request.cookies.get("qonto_access_token");
+	// Check for refresh token (access token may be refreshed on the server)
 	const refreshToken = request.cookies.get("qonto_refresh_token");
 
-	// Redirect to login if no tokens
-	if (!accessToken || !refreshToken) {
+	// Redirect to login if no refresh token
+	if (!refreshToken) {
 		const loginUrl = new URL("/login", request.url);
 		return NextResponse.redirect(loginUrl);
 	}

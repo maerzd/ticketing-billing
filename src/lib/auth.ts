@@ -50,8 +50,8 @@ export async function getAccessToken(): Promise<string> {
 	const refreshToken = cookieStore.get(REFRESH_TOKEN_COOKIE)?.value;
 	const expiryStr = cookieStore.get(TOKEN_EXPIRY_COOKIE)?.value;
 
-	if (!accessToken || !refreshToken) {
-		throw new UnauthorizedError("No authentication tokens found");
+	if (!refreshToken) {
+		throw new UnauthorizedError("No refresh token found");
 	}
 
 	// Check if token is expired or about to expire (within 5 minutes)
@@ -59,7 +59,7 @@ export async function getAccessToken(): Promise<string> {
 	const now = Date.now();
 	const fiveMinutes = 5 * 60 * 1000;
 
-	if (expiryTime - now < fiveMinutes) {
+	if (!accessToken || expiryTime - now < fiveMinutes) {
 		try {
 			const newTokens = await refreshAccessToken(refreshToken);
 			await setAuthTokens(newTokens);

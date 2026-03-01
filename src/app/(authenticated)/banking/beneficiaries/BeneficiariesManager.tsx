@@ -1,4 +1,14 @@
 "use client";
+
+import { useRouter } from "next/navigation";
+import { useState, useTransition } from "react";
+import { toast } from "sonner";
+import {
+	trustSepaBeneficiaries,
+	untrustSepaBeneficiaries,
+} from "@/actions/beneficiaries";
+import { BeneficiaryCreateDialog } from "@/components/forms/BeneficiaryCreateDialog";
+import { Button } from "@/components/ui/button";
 import {
 	Card,
 	CardContent,
@@ -50,6 +60,33 @@ export function BeneficiariesManager({
 	beneficiaries,
 	totalCount,
 }: Readonly<BeneficiariesManagerProps>) {
+	const router = useRouter();
+	const [isPending, startTransition] = useTransition();
+	const [actionId, setActionId] = useState<string | null>(null);
+
+	const handleTrustToggle = (beneficiary: QontoSepaBeneficiary) => {
+		setActionId(beneficiary.id);
+		startTransition(async () => {
+			const action = beneficiary.trusted
+				? untrustSepaBeneficiaries
+				: trustSepaBeneficiaries;
+			const result = await action([beneficiary.id]);
+
+			if (result.success) {
+				toast.success(
+					beneficiary.trusted
+						? "Begünstigter wurde entzogen"
+						: "Begünstigter wurde vertraut",
+				);
+				router.refresh();
+			} else {
+				toast.error(result.error ?? "Aktualisierung fehlgeschlagen");
+			}
+
+			setActionId(null);
+		});
+	};
+
 	return (
 		<Card>
 			<CardHeader>
@@ -60,6 +97,7 @@ export function BeneficiariesManager({
 							Insgesamt {totalCount} Begünstigte
 						</CardDescription>
 					</div>
+					<BeneficiaryCreateDialog />
 				</div>
 			</CardHeader>
 			<CardContent>
@@ -75,6 +113,7 @@ export function BeneficiariesManager({
 								<TableHead>IBAN</TableHead>
 								<TableHead>Status</TableHead>
 								<TableHead>Vertrauen</TableHead>
+								<TableHead className="text-right">Aktion</TableHead>
 							</TableRow>
 						</TableHeader>
 						<TableBody>
@@ -97,6 +136,16 @@ export function BeneficiariesManager({
 									</TableCell>
 									<TableCell>
 										{beneficiary.trusted ? "Vertraut" : "Nicht vertraut"}
+									</TableCell>
+									<TableCell className="text-right">
+										<Button
+											variant={beneficiary.trusted ? "outline" : "default"}
+											size="sm"
+											disabled={isPending && actionId === beneficiary.id}
+											onClick={() => handleTrustToggle(beneficiary)}
+										>
+											{beneficiary.trusted ? "Entziehen" : "Vertrauen"}
+										</Button>
 									</TableCell>
 								</TableRow>
 							))}
