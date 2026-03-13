@@ -19,7 +19,7 @@ const CreateTransferSchema = z.object({
 export type CreateTransferInput = z.infer<typeof CreateTransferSchema>;
 
 export class TransfersService {
-	constructor(private readonly client: QontoClient) { }
+	constructor(private readonly client: QontoClient) {}
 
 	async verifyPayee(iban: string, beneficiary_name: string) {
 		return this.client.post(

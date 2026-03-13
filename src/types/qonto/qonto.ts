@@ -18,8 +18,6 @@ export const QontoOAuthErrorSchema = z.object({
 
 export type QontoOAuthError = z.infer<typeof QontoOAuthErrorSchema>;
 
-
-
 const QontoPaginationSchema = z.object({
 	total: z.coerce.number().default(0),
 	per_page: z.coerce.number().default(25),
@@ -131,8 +129,6 @@ export const QontoExternalTransferListSchema = z
 export type QontoExternalTransferList = z.infer<
 	typeof QontoExternalTransferListSchema
 >;
-
-
 
 // API Request/Response Wrappers
 export const QontoAPIErrorSchema = z.object({

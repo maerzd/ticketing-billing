@@ -4,15 +4,12 @@ import {
 	CreateClientInvoiceResponseSchema,
 	QontoCreateClientInvoiceSchema,
 } from "@/types/qonto/create-invoice";
-import {
-	ClientInvoiceSchema,
-	ListClientInvoicesSchema,
-} from "@/types/qonto/invoice";
+import { ListClientInvoicesSchema } from "@/types/qonto/invoice";
 
 export type CreateInvoiceInput = z.infer<typeof QontoCreateClientInvoiceSchema>;
 
 export class InvoicesService {
-	constructor(private readonly client: QontoClient) { }
+	constructor(private readonly client: QontoClient) {}
 
 	async createInvoice(input: CreateInvoiceInput) {
 		const validatedBody = QontoCreateClientInvoiceSchema.parse(input);

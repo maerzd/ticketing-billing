@@ -7,7 +7,7 @@
 	},
 	"files": {
 		"ignoreUnknown": false,
-		"includes": ["**", "!components/ui", "!components/charts"]
+		"includes": ["**", "!src/components/ui", "!src/components/charts"]
 	},
 	"formatter": {
 		"enabled": true,

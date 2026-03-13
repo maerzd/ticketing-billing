@@ -50,7 +50,6 @@ const getStatusClassName = (status: string) => {
 			return "bg-green-50 text-green-800";
 		case "declined":
 			return "bg-red-50 text-red-800";
-		case "pending":
 		default:
 			return "bg-amber-50 text-amber-800";
 	}
