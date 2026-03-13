@@ -1,6 +1,6 @@
 import env from "@/env";
 import { OAuthError } from "@/lib/errors";
-import type { QontoOAuthError, QontoTokenResponse } from "@/types/qonto";
+import type { QontoOAuthError, QontoTokenResponse } from "@/types/qonto/qonto";
 import { getBaseUrl } from "../utils";
 
 const SANDBOX_AUTH_URL = "https://oauth-sandbox.staging.qonto.co/oauth2/auth";
@@ -40,7 +40,7 @@ const SCOPES = [
 export function getAuthorizationUrl(state: string): string {
 	const params = new URLSearchParams({
 		client_id: env.QONTO_CLIENT_ID,
-		redirect_uri: `${getBaseUrl()}/api/auth/callback`,
+		redirect_uri: `${getBaseUrl()}/api/qonto/auth/callback`,
 		response_type: "code",
 		scope: SCOPES.join(" "),
 		state,
@@ -61,7 +61,7 @@ export async function exchangeCodeForToken(
 		code,
 		client_id: env.QONTO_CLIENT_ID,
 		client_secret: env.QONTO_CLIENT_SECRET,
-		redirect_uri: `${getBaseUrl()}/api/auth/callback`,
+		redirect_uri: `${getBaseUrl()}/api/qonto/auth/callback`,
 	}).toString();
 
 	const response = await fetch(tokenUrl, {

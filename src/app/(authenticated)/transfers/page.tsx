@@ -1,5 +1,6 @@
 import { TransferCreateDialog } from "@/app/(authenticated)/transfers/TransferCreateDialog";
 import { BeneficiaryCreateDialog } from "@/components/forms/BeneficiaryCreateDialog";
+import { QontoConnectCard } from "@/components/my-ui/qonto-connect-card";
 import { TransferStatusBadge } from "@/components/my-ui/transfer-status-badge";
 import {
 	Breadcrumb,
@@ -24,6 +25,7 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
+import { requiresQontoAuth } from "@/lib/qonto/auth-state";
 import {
 	queryBeneficiaries,
 	queryOrganization,
@@ -32,6 +34,7 @@ import {
 
 export default async function TransfersPage() {
 	const result = await queryTransfers();
+	const showQontoLogin = !result.success && requiresQontoAuth(result.error);
 	const beneficiariesResult = await queryBeneficiaries();
 	const beneficiaries = beneficiariesResult.success
 		? beneficiariesResult.data.beneficiaries
@@ -85,18 +88,22 @@ export default async function TransfersPage() {
 				</div>
 
 				{/* Action Buttons */}
-				<div className="flex items-center gap-2">
-					<TransferCreateDialog
-						beneficiaries={beneficiaries}
-						bankAccounts={bankAccounts}
-					/>
-					<BeneficiaryCreateDialog
-						triggerVariant="outline"
-						triggerLabel="Begünstigten hinzufügen"
-					/>
-				</div>
+				{!showQontoLogin && (
+					<div className="flex items-center gap-2">
+						<TransferCreateDialog
+							beneficiaries={beneficiaries}
+							bankAccounts={bankAccounts}
+						/>
+						<BeneficiaryCreateDialog
+							triggerVariant="outline"
+							triggerLabel="Begünstigten hinzufügen"
+						/>
+					</div>
+				)}
 				{/* Transfers List */}
-				{result.success && result.data ? (
+				{showQontoLogin && <QontoConnectCard />}
+
+				{!showQontoLogin && result.success && result.data && (
 					<Card>
 						<CardHeader>
 							<CardTitle>Alle Überweisungen</CardTitle>
@@ -141,7 +148,9 @@ export default async function TransfersPage() {
 							)}
 						</CardContent>
 					</Card>
-				) : (
+				)}
+
+				{!showQontoLogin && result.success === false && (
 					<Card className="border-red-200 bg-red-50">
 						<CardHeader>
 							<CardTitle className="text-red-900">Error</CardTitle>

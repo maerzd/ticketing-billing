@@ -11,8 +11,8 @@ import {
 	DialogTitle,
 	DialogTrigger,
 } from "@/components/ui/dialog";
-import type { QontoSepaBeneficiary } from "@/types/beneficiaries";
-import type { QontoBankAccount } from "@/types/organization";
+import type { QontoSepaBeneficiary } from "@/types/qonto/beneficiaries";
+import type { QontoBankAccount } from "@/types/qonto/organization";
 
 interface TransferCreateDialogProps {
 	beneficiaries: QontoSepaBeneficiary[];

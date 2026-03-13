@@ -24,7 +24,7 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
-import type { QontoSepaBeneficiary } from "@/types/beneficiaries";
+import type { QontoSepaBeneficiary } from "@/types/qonto/beneficiaries";
 
 interface BeneficiariesManagerProps {
 	beneficiaries: QontoSepaBeneficiary[];

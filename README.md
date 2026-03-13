@@ -45,12 +45,12 @@ An internal Next.js application for managing post-event billing and integrating 
    - Go to [https://developers.qonto.com](https://developers.qonto.com)
    - Create a new application
    - Note your `client_id` and `client_secret`
-   - Set your redirect URI to `http://localhost:3000/api/auth/callback` (for development)
+   - Set your redirect URI to `http://localhost:3000/api/qonto/auth/callback` (for development)
 
 4. **Update `.env.local`:**
    ```
    NEXT_PUBLIC_QONTO_CLIENT_ID=your_client_id
-   NEXT_PUBLIC_QONTO_REDIRECT_URI=http://localhost:3000/api/auth/callback
+   NEXT_PUBLIC_QONTO_REDIRECT_URI=http://localhost:3000/api/qonto/auth/callback
    QONTO_CLIENT_SECRET=your_client_secret
    QONTO_SANDBOX=true
    ```
@@ -71,7 +71,9 @@ An internal Next.js application for managing post-event billing and integrating 
 src/
 ├── app/                       # Next.js App Router
 │   ├── api/                  # API routes
-│   │   └── auth/            # OAuth authentication endpoints
+│   │   └── qonto/
+│   │       └── auth/        # Qonto OAuth authentication endpoints
+│   ├── auth/                # Main app auth endpoints (WorkOS)
 │   ├── dashboard/           # Dashboard page
 │   ├── invoices/            # Invoice management
 │   ├── transfers/           # Transfer management
@@ -150,8 +152,8 @@ src/
 3. **Update Qonto redirect URI:**
    - Navigate to [https://developers.qonto.com](https://developers.qonto.com)
    - Update authorized redirect URIs to include your Vercel domain:
-     - Production: `https://your-project.vercel.app/api/auth/callback`
-     - Preview: `https://your-project-*.vercel.app/api/auth/callback`
+   - Production: `https://your-project.vercel.app/api/qonto/auth/callback`
+   - Preview: `https://your-project-*.vercel.app/api/qonto/auth/callback`
 
 4. **Deploy:**
    ```bash
@@ -162,9 +164,9 @@ src/
 
 ### Authentication
 
-- `GET /api/auth/login` — Initiates Qonto OAuth flow
-- `GET /api/auth/callback` — OAuth callback (exchanges code for tokens)
-- `GET /api/auth/logout` — Clears authentication and redirects to login
+- `GET /api/qonto/auth/login` — Initiates Qonto OAuth flow
+- `GET /api/qonto/auth/callback` — OAuth callback (exchanges code for tokens)
+- `GET /api/qonto/auth/logout` — Clears authentication and redirects to login
 
 ### Data (Server Actions)
 

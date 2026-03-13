@@ -3,9 +3,9 @@ import type { QontoClient } from "@/lib/qonto/client";
 import {
 	QontoExternalTransferSchema,
 	QontoVerifyPayeeResponseSchema,
-} from "@/types/qonto";
+} from "@/types/qonto/qonto";
 
-import { QontoListSepaTransfersSchema } from "@/types/sepa-transfers";
+import { QontoListSepaTransfersSchema } from "@/types/qonto/sepa-transfers";
 
 const CreateTransferSchema = z.object({
 	beneficiary_id: z.string().min(1),
@@ -19,7 +19,7 @@ const CreateTransferSchema = z.object({
 export type CreateTransferInput = z.infer<typeof CreateTransferSchema>;
 
 export class TransfersService {
-	constructor(private readonly client: QontoClient) {}
+	constructor(private readonly client: QontoClient) { }
 
 	async verifyPayee(iban: string, beneficiary_name: string) {
 		return this.client.post(

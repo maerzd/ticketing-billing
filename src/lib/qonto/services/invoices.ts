@@ -1,7 +1,13 @@
 import type { z } from "zod";
 import type { QontoClient } from "@/lib/qonto/client";
-import { CreateClientInvoiceResponseSchema, QontoCreateClientInvoiceSchema } from "@/types/create-invoice";
-import { ClientInvoiceSchema, ListClientInvoicesSchema } from "@/types/invoice";
+import {
+	CreateClientInvoiceResponseSchema,
+	QontoCreateClientInvoiceSchema,
+} from "@/types/qonto/create-invoice";
+import {
+	ClientInvoiceSchema,
+	ListClientInvoicesSchema,
+} from "@/types/qonto/invoice";
 
 export type CreateInvoiceInput = z.infer<typeof QontoCreateClientInvoiceSchema>;
 

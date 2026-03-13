@@ -1,4 +1,4 @@
-import { BeneficiaryCreateDialog } from "@/components/forms/BeneficiaryCreateDialog";
+import { QontoConnectCard } from "@/components/my-ui/qonto-connect-card";
 import {
 	Breadcrumb,
 	BreadcrumbItem,
@@ -8,11 +8,13 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
+import { requiresQontoAuth } from "@/lib/qonto/auth-state";
 import { queryBeneficiaries } from "@/lib/qonto/queries";
 import { BeneficiariesManager } from "./BeneficiariesManager";
 
 export default async function BeneficiariesPage() {
 	const result = await queryBeneficiaries();
+	const showQontoLogin = !result.success && requiresQontoAuth(result.error);
 	const beneficiaries = result.success ? result.data.beneficiaries : [];
 	const totalCount = result.success ? result.data.meta.total_count : 0;
 
@@ -43,7 +45,9 @@ export default async function BeneficiariesPage() {
 					</p>
 				</div>
 
-				{result.success === false && (
+				{showQontoLogin && <QontoConnectCard />}
+
+				{result.success === false && !showQontoLogin && (
 					<Card className="border-red-200 bg-red-50">
 						<CardHeader>
 							<CardTitle className="text-red-900">Error</CardTitle>
@@ -54,10 +58,12 @@ export default async function BeneficiariesPage() {
 					</Card>
 				)}
 
-				<BeneficiariesManager
-					beneficiaries={beneficiaries}
-					totalCount={totalCount}
-				/>
+				{!showQontoLogin && (
+					<BeneficiariesManager
+						beneficiaries={beneficiaries}
+						totalCount={totalCount}
+					/>
+				)}
 			</div>
 		</>
 	);

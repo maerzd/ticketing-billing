@@ -1,8 +1,8 @@
 import type { QontoClient } from "@/lib/qonto/client";
-import { ListClientsResponseSchema } from "@/types/clients";
+import { ListClientsResponseSchema } from "@/types/qonto/clients";
 
 export class ClientsService {
-	constructor(private readonly client: QontoClient) {}
+	constructor(private readonly client: QontoClient) { }
 
 	async listClients(page: number = 1, per_page: number = 50) {
 		return this.client.get("/clients", ListClientsResponseSchema, {

@@ -7,8 +7,8 @@ import { createTransfer, verifyTransferPayee } from "@/actions/transfers";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import type { QontoSepaBeneficiary } from "@/types/beneficiaries";
-import type { QontoBankAccount } from "@/types/organization";
+import type { QontoSepaBeneficiary } from "@/types/qonto/beneficiaries";
+import type { QontoBankAccount } from "@/types/qonto/organization";
 
 interface TransferFormProps {
 	beneficiaries: QontoSepaBeneficiary[];

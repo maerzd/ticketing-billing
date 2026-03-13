@@ -6,7 +6,7 @@ import {
 	QontoSepaBeneficiaryBatchResponseSchema,
 	QontoSepaBeneficiaryListSchema,
 	QontoSepaBeneficiaryResponseSchema,
-} from "@/types/beneficiaries";
+} from "@/types/qonto/beneficiaries";
 
 export type CreateBeneficiaryInput = z.infer<
 	typeof QontoCreateSepaBeneficiarySchema
