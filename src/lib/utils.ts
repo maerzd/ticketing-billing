@@ -5,6 +5,19 @@ export function cn(...inputs: ClassValue[]) {
 	return twMerge(clsx(inputs));
 }
 
+function normalizeUrl(url: string): string {
+	return url.replace(/\/$/, "");
+}
+
+function isLocalhostUrl(url: string): boolean {
+	try {
+		const parsed = new URL(url);
+		return ["localhost", "127.0.0.1", "::1"].includes(parsed.hostname);
+	} catch {
+		return false;
+	}
+}
+
 /**
  * Get the canonical base URL for the application.
  *
@@ -17,24 +30,32 @@ export function cn(...inputs: ClassValue[]) {
  * @returns The canonical base URL without trailing slash
  */
 export function getBaseUrl(): string {
-	// 1. First check for explicitly configured site URL (fallback for production)
+	// 1. Prefer explicitly configured canonical URL, unless it points to localhost in production.
 	if (process.env.NEXT_PUBLIC_SITE_URL) {
-		return process.env.NEXT_PUBLIC_SITE_URL.replace(/\/$/, "");
+		const siteUrl = normalizeUrl(process.env.NEXT_PUBLIC_SITE_URL);
+
+		if (!(process.env.NODE_ENV === "production" && isLocalhostUrl(siteUrl))) {
+			return siteUrl;
+		}
 	}
 
-	// 2. On Vercel, use the VERCEL_PROJECT_PRODUCTION_URL system environment variable
-	// See: https://vercel.com/docs/environment-variables/system-environment-variables#VERCEL_PROJECT_PRODUCTION_URL
+	// 2. On Vercel, use the deployment URL (works for preview and production).
+	if (process.env.VERCEL_URL) {
+		return `https://${normalizeUrl(process.env.VERCEL_URL)}`;
+	}
+
+	// 3. Fall back to the production URL when available.
 	if (process.env.VERCEL_PROJECT_PRODUCTION_URL) {
-		return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`;
+		return `https://${normalizeUrl(process.env.VERCEL_PROJECT_PRODUCTION_URL)}`;
 	}
 
-	// 3. Fallback for local development
+	// 4. Fallback for local development
 	if (process.env.NODE_ENV === "development") {
 		return "http://localhost:3000";
 	}
 
-	// 4. Safe fallback - this should never be reached in production
+	// 5. Safe fallback - this should never be reached in production
 	throw new Error(
-		"Unable to determine base URL. Please set NEXT_PUBLIC_SITE_URL or VERCEL_PROJECT_PRODUCTION_URL environment variable.",
+		"Unable to determine base URL. Please set NEXT_PUBLIC_SITE_URL, VERCEL_URL, or VERCEL_PROJECT_PRODUCTION_URL environment variable.",
 	);
 }
