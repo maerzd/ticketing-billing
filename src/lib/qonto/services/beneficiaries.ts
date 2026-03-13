@@ -6,14 +6,14 @@ import {
 	QontoSepaBeneficiaryBatchResponseSchema,
 	QontoSepaBeneficiaryListSchema,
 	QontoSepaBeneficiaryResponseSchema,
-} from "@/types/beneficiaries";
+} from "@/types/qonto/beneficiaries";
 
 export type CreateBeneficiaryInput = z.infer<
 	typeof QontoCreateSepaBeneficiarySchema
 >;
 
 export class BeneficiariesService {
-	constructor(private readonly client: QontoClient) { }
+	constructor(private readonly client: QontoClient) {}
 
 	async listBeneficiaries(page: number = 1, per_page: number = 50) {
 		return this.client.get(

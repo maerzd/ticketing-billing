@@ -1,5 +1,5 @@
 import type { QontoClient } from "@/lib/qonto/client";
-import { ListClientsResponseSchema } from "@/types/clients";
+import { ListClientsResponseSchema } from "@/types/qonto/clients";
 
 export class ClientsService {
 	constructor(private readonly client: QontoClient) {}

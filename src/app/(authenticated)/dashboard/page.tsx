@@ -1,5 +1,6 @@
 import { FileText, Send, Users } from "lucide-react";
 import Link from "next/link";
+import { QontoConnectCard } from "@/components/my-ui/qonto-connect-card";
 import {
 	Breadcrumb,
 	BreadcrumbItem,
@@ -18,10 +19,12 @@ import {
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
+import { requiresQontoAuth } from "@/lib/qonto/auth-state";
 import { queryOrganization } from "@/lib/qonto/queries";
 
 export default async function Page() {
 	const result = await queryOrganization();
+	const showQontoLogin = !result.success && requiresQontoAuth(result.error);
 
 	return (
 		<>
@@ -86,7 +89,9 @@ export default async function Page() {
 					</Card>
 				)}
 
-				{result.success === false && (
+				{showQontoLogin && <QontoConnectCard />}
+
+				{result.success === false && !showQontoLogin && (
 					<Card className="border-red-200 bg-red-50">
 						<CardHeader>
 							<CardTitle className="text-red-900">Verbindungs-Fehler</CardTitle>

@@ -61,7 +61,7 @@ export function AppHeader() {
 						</Link>
 					</nav>
 				</div>
-				<Link href="/api/auth/logout">
+				<Link href="/api/qonto/auth/logout">
 					<Button variant="outline" size="sm" className="gap-2">
 						<LogOut className="h-4 w-4" />
 						Abmelden

@@ -1,12 +1,8 @@
-import { randomUUID } from "node:crypto";
+import { getSignInUrl } from "@workos-inc/authkit-nextjs";
 import { redirect } from "next/navigation";
-import { getAuthorizationUrl } from "@/lib/qonto/oauth";
 
-export async function GET() {
-	// Generate a cryptographically secure random state for CSRF protection
-	const state = randomUUID();
+export const GET = async () => {
+	const signInUrl = await getSignInUrl();
 
-	// Redirect to Qonto OAuth consent screen
-	const authUrl = getAuthorizationUrl(state);
-	redirect(authUrl);
-}
+	return redirect(signInUrl);
+};

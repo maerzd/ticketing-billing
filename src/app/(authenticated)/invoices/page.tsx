@@ -1,4 +1,5 @@
 import { InvoiceStatusBadge } from "@/components/my-ui/invoice-status-badge";
+import { QontoConnectCard } from "@/components/my-ui/qonto-connect-card";
 import {
 	Breadcrumb,
 	BreadcrumbItem,
@@ -22,11 +23,13 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
+import { requiresQontoAuth } from "@/lib/qonto/auth-state";
 import { queryClients, queryInvoices } from "@/lib/qonto/queries";
 import { InvoiceCreateDialog } from "./InvoiceCreateDialog";
 
 export default async function InvoicesPage() {
 	const result = await queryInvoices();
+	const showQontoLogin = !result.success && requiresQontoAuth(result.error);
 	const clientsResult = await queryClients();
 	const clients = clientsResult.success ? clientsResult.data.clients : [];
 
@@ -70,11 +73,13 @@ export default async function InvoicesPage() {
 						<h1 className="font-bold text-3xl text-slate-900">Rechnungen</h1>
 						<p className="mt-2 text-slate-600">Ausgehende Rechnungen</p>
 					</div>
-					<InvoiceCreateDialog clients={clients} />
+					{!showQontoLogin && <InvoiceCreateDialog clients={clients} />}
 				</div>
 
 				{/* Invoices List */}
-				{result.success && result.data ? (
+				{showQontoLogin && <QontoConnectCard />}
+
+				{!showQontoLogin && result.success && result.data && (
 					<Card>
 						<CardHeader>
 							<CardTitle>Alle Rechnungen</CardTitle>
@@ -119,7 +124,9 @@ export default async function InvoicesPage() {
 							)}
 						</CardContent>
 					</Card>
-				) : (
+				)}
+
+				{!showQontoLogin && result.success === false && (
 					<Card className="border-red-200 bg-red-50">
 						<CardHeader>
 							<CardTitle className="text-red-900">Error</CardTitle>

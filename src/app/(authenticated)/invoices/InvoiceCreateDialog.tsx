@@ -11,7 +11,7 @@ import {
 	DialogTitle,
 	DialogTrigger,
 } from "@/components/ui/dialog";
-import type { Client } from "@/types/clients";
+import type { Client } from "@/types/qonto/clients";
 
 interface InvoiceCreateDialogProps {
 	clients: Client[];
