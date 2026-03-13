@@ -136,9 +136,7 @@ export {
 	fetchTicketSales,
 	fetchUsers,
 	hubbleSearchEvents,
-	hubbleSearchEventsAuth,
 	hubbleSearchTickets,
-	hubbleSearchTicketsAuth,
 	inviteUser,
 } from "./queries";
 

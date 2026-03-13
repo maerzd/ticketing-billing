@@ -27,9 +27,9 @@ import type {
 } from "@/lib/vivenu/types";
 import type { Me } from "@/types/vivenu/me";
 
-const createServices = (token: string) => {
+const createHubbleServices = async () => {
+	const token = await getVivenuHubbleToken();
 	const client = new VivenuClient({ accessToken: token });
-
 	return {
 		events: new VivenuEventsService(client),
 		analytics: new VivenuAnalyticsService(client),
@@ -39,118 +39,74 @@ const createServices = (token: string) => {
 	};
 };
 
-/**
- * Create services with automatic Hubble JWT authentication
- * Gets the JWT token from cookies or re-authenticates if needed
- */
-const createHubbleServices = async () => {
-	const token = await getVivenuHubbleToken();
-	return createServices(token);
-};
-
 export const fetchEvents = async (
-	token: string,
 	options: FetchEventsOptions = {},
-): Promise<EventResponse> => createServices(token).events.fetchEvents(options);
+): Promise<EventResponse> =>
+	(await createHubbleServices()).events.fetchEvents(options);
 
 export const fetchEvent = async (
-	token: string,
 	eventId: string,
 ): Promise<VivenuEvent | null> =>
-	createServices(token).events.fetchEvent(eventId);
+	(await createHubbleServices()).events.fetchEvent(eventId);
 
 export const fetchTicketSales = async (
-	token: string,
 	filters: TicketSalesFilters,
 ): Promise<TicketSales | null> =>
-	createServices(token).analytics.fetchTicketSales(filters);
+	(await createHubbleServices()).analytics.fetchTicketSales(filters);
 
 export const fetchTicketInventory = async (
-	token: string,
 	filters: TicketSalesFilters,
 ): Promise<TicketSales | null> =>
-	createServices(token).analytics.fetchTicketInventory(filters);
+	(await createHubbleServices()).analytics.fetchTicketInventory(filters);
 
 export const fetchRevenue = async (
-	token: string,
 	filters: RevenueFilters,
 ): Promise<RevenueResponse | null> =>
-	createServices(token).analytics.fetchRevenue(filters);
+	(await createHubbleServices()).analytics.fetchRevenue(filters);
 
-export const fetchMe = async (token: string): Promise<Me | null> =>
-	createServices(token).users.fetchMe();
+export const fetchMe = async (): Promise<Me | null> =>
+	(await createHubbleServices()).users.fetchMe();
 
 export const hubbleSearchEvents = async (
-	token: string,
 	filters: HubbleEventsFilters,
 ): Promise<HubbleEventResponse | null> =>
-	createServices(token).events.hubbleSearchEvents(filters);
+	(await createHubbleServices()).events.hubbleSearchEvents(filters);
 
 export const hubbleSearchTickets = async (
-	token: string,
 	filters: HubbleTicketsFilters,
 ): Promise<HubbleTicketResponse | null> =>
-	createServices(token).tickets.hubbleSearchTickets(filters);
+	(await createHubbleServices()).tickets.hubbleSearchTickets(filters);
 
 export const fetchMonthlyPOSRevenue = async (
-	token: string,
 	posId: string,
 ): Promise<PosRevenueResponse | null> =>
-	createServices(token).pos.fetchMonthlyPOSRevenue(posId);
+	(await createHubbleServices()).pos.fetchMonthlyPOSRevenue(posId);
 
 export const fetchAllPOS = async (
-	token: string,
 	options?: FetchPosOptions & { fetchAll?: boolean },
 ): Promise<PosDevice[] | null> =>
-	createServices(token).pos.fetchAllPOS(options);
+	(await createHubbleServices()).pos.fetchAllPOS(options);
 
 export const fetchPOS = async (
-	token: string,
 	posId: string | undefined,
-): Promise<PosDevice | null> => createServices(token).pos.fetchPOS(posId);
+): Promise<PosDevice | null> =>
+	(await createHubbleServices()).pos.fetchPOS(posId);
 
 export const fetchAccessUser = async (
-	token: string,
 	orgId: string,
 ): Promise<AccessUser | null> =>
-	createServices(token).users.fetchAccessUser(orgId);
+	(await createHubbleServices()).users.fetchAccessUser(orgId);
 
 export const inviteUser = async (
-	token: string,
 	payload: InviteUserPayload,
-): Promise<InviteUserResult> => createServices(token).users.inviteUser(payload);
+): Promise<InviteUserResult> =>
+	(await createHubbleServices()).users.inviteUser(payload);
 
 export const fetchUsers = async (
-	token: string,
 	top: number = 50,
 	skip: number = 0,
 ): Promise<UsersResponse | null> =>
-	createServices(token).users.fetchUsers(top, skip);
-
-// ============================================================================
-// Hubble Functions with Automatic Authentication
-// These functions automatically handle JWT authentication for Hubble endpoints
-// ============================================================================
-
-/**
- * Search events via Hubble with automatic authentication
- */
-export const hubbleSearchEventsAuth = async (
-	filters: HubbleEventsFilters,
-): Promise<HubbleEventResponse | null> => {
-	const services = await createHubbleServices();
-	return services.events.hubbleSearchEvents(filters);
-};
-
-/**
- * Search tickets via Hubble with automatic authentication
- */
-export const hubbleSearchTicketsAuth = async (
-	filters: HubbleTicketsFilters,
-): Promise<HubbleTicketResponse | null> => {
-	const services = await createHubbleServices();
-	return services.tickets.hubbleSearchTickets(filters);
-};
+	(await createHubbleServices()).users.fetchUsers(top, skip);
 
 export type {
 	DateOperator,
@@ -165,6 +121,7 @@ export type {
 	InviteUserResponse,
 	InviteUserResult,
 	OrganizerTicketSalesFilters,
+	PosRevenueResponse,
 	RevenueFilters,
 	TicketSalesFilters,
 } from "@/lib/vivenu/types";

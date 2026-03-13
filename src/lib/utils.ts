@@ -5,6 +5,39 @@ export function cn(...inputs: ClassValue[]) {
 	return twMerge(clsx(inputs));
 }
 
+export interface FormatNumberOptions extends Intl.NumberFormatOptions { }
+
+export function formatNumber(
+	num: number | undefined | null,
+	digits = 2,
+	locale = "de-DE",
+	options: FormatNumberOptions = {},
+): string {
+	if (num === null || num === undefined) {
+		return "";
+	}
+	return new Intl.NumberFormat(locale, {
+		minimumFractionDigits: digits,
+		maximumFractionDigits: digits,
+		...options,
+	}).format(num);
+}
+
+export function formatCurrency(
+	num: number,
+	currency = "EUR",
+	locale = "de-DE",
+	options: FormatNumberOptions = {},
+): string {
+	return new Intl.NumberFormat(locale, {
+		style: "currency",
+		currency,
+		minimumFractionDigits: 2,
+		maximumFractionDigits: 2,
+		...options,
+	}).format(num);
+}
+
 function normalizeUrl(url: string): string {
 	return url.replace(/\/$/, "");
 }

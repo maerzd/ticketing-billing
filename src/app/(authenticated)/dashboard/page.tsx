@@ -21,6 +21,7 @@ import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { requiresQontoAuth } from "@/lib/qonto/auth-state";
 import { queryOrganization } from "@/lib/qonto/queries";
+import SalesDashboard from "./sales-dashboard";
 
 export default async function Page() {
 	const result = await queryOrganization();
@@ -56,6 +57,7 @@ export default async function Page() {
 						Willkommen im Abrechnungs-Portal
 					</p>
 				</div>
+				<SalesDashboard />
 
 				{/* Organization Details */}
 				{result.success && result.data && (

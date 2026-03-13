@@ -1,6 +1,3 @@
-"use server";
-
-import { cookies } from "next/headers";
 import { generate } from "otplib";
 import {
 	VIVENU_API_URL,
@@ -12,11 +9,14 @@ import {
 import { AppError, UnauthorizedError } from "@/lib/errors";
 import type { VivenuLoginResponse } from "./types";
 
-const VIVENU_JWT_COOKIE = "vivenu_jwt_token";
-const VIVENU_TOKEN_EXPIRY_COOKIE = "vivenu_token_expiry";
-
 // Default token expiry: 24 hours if not provided by API
 const DEFAULT_TOKEN_EXPIRY = 24 * 60 * 60; // 24 hours in seconds
+
+// Module-level cache — Vivenu is a shared service credential, not per-user.
+// This works in any server context (Server Components, Route Handlers, Server Actions).
+// On serverless cold starts the cache is empty and a fresh login is performed transparently.
+// Could be improved by using a more robust caching strategy (e.g. Redis) if needed in the future.
+let tokenCache: { jwt: string; expiresAt: number } | null = null;
 
 async function generateVivenuOtp(
 	otpSecret?: string,
@@ -84,105 +84,50 @@ export async function loginToVivenu(
 }
 
 /**
- * Store Vivenu JWT token in secure HTTP-only cookies
- */
-export async function setVivenuTokens(
-	jwt: string,
-	expiresIn: number = DEFAULT_TOKEN_EXPIRY,
-) {
-	const cookieStore = await cookies();
-	const expiresAt = new Date(Date.now() + expiresIn * 1000);
-
-	cookieStore.set(VIVENU_JWT_COOKIE, jwt, {
-		httpOnly: true,
-		secure: process.env.NODE_ENV === "production",
-		sameSite: "lax",
-		maxAge: expiresIn,
-		path: "/",
-	});
-
-	cookieStore.set(VIVENU_TOKEN_EXPIRY_COOKIE, expiresAt.toISOString(), {
-		httpOnly: true,
-		secure: process.env.NODE_ENV === "production",
-		sameSite: "lax",
-		maxAge: expiresIn,
-		path: "/",
-	});
-}
-
-/**
- * Get the current Vivenu Hubble JWT token, re-logging in if expired or missing
+ * Get the current Vivenu Hubble JWT token, re-logging in if expired or missing.
+ * Safe to call from any server context (Server Components, Route Handlers, Server Actions).
  */
 export async function getVivenuHubbleToken(): Promise<string> {
-	const loginEmail = VIVENU_EMAIL;
-
-	if (!loginEmail || !VIVENU_PASSWORD) {
+	if (!VIVENU_EMAIL || !VIVENU_PASSWORD) {
 		throw new AppError(
 			"Vivenu credentials not configured. Set VIVENU_EMAIL and VIVENU_PASSWORD environment variables.",
 			500,
 		);
 	}
 
-	const cookieStore = await cookies();
-	const jwt = cookieStore.get(VIVENU_JWT_COOKIE)?.value;
-	const expiryStr = cookieStore.get(VIVENU_TOKEN_EXPIRY_COOKIE)?.value;
+	const fiveMinutes = 5 * 60 * 1000;
 
-	// Check if token exists and is not expired
-	if (jwt && expiryStr) {
-		const expiryTime = new Date(expiryStr).getTime();
-		const now = Date.now();
-		const fiveMinutes = 5 * 60 * 1000;
-
-		// If token is still valid (not expired and has more than 5 minutes left)
-		if (expiryTime - now > fiveMinutes) {
-			return jwt;
-		}
+	if (tokenCache && tokenCache.expiresAt - Date.now() > fiveMinutes) {
+		return tokenCache.jwt;
 	}
 
-	// Token is missing or expired, re-login
-	try {
-		const generatedOtp = await generateVivenuOtp(VIVENU_OTP_SECRET);
+	// Cache is empty or token is about to expire — re-login
+	const generatedOtp = await generateVivenuOtp(VIVENU_OTP_SECRET);
 
-		const loginResponse = await loginToVivenu(
-			loginEmail,
-			VIVENU_PASSWORD,
-			generatedOtp,
-			VIVENU_LOGIN_TWO_FACTOR_METHOD || "totp",
-		);
-		await setVivenuTokens(
-			loginResponse.jwt,
-			loginResponse.expiresIn || DEFAULT_TOKEN_EXPIRY,
-		);
-		return loginResponse.jwt;
-	} catch (error) {
-		await clearVivenuTokens();
-		throw error;
-	}
+	const loginResponse = await loginToVivenu(
+		VIVENU_EMAIL,
+		VIVENU_PASSWORD,
+		generatedOtp,
+		VIVENU_LOGIN_TWO_FACTOR_METHOD || "totp",
+	);
+
+	const expiresIn = loginResponse.expiresIn ?? DEFAULT_TOKEN_EXPIRY;
+	tokenCache = { jwt: loginResponse.jwt, expiresAt: Date.now() + expiresIn * 1000 };
+
+	return tokenCache.jwt;
 }
 
 /**
- * Clear all Vivenu authentication tokens
+ * Check if Vivenu is authenticated (token cached and not expiring soon)
  */
-export async function clearVivenuTokens() {
-	const cookieStore = await cookies();
-	cookieStore.delete(VIVENU_JWT_COOKIE);
-	cookieStore.delete(VIVENU_TOKEN_EXPIRY_COOKIE);
+export function isVivenuAuthenticated(): boolean {
+	const fiveMinutes = 5 * 60 * 1000;
+	return tokenCache !== null && tokenCache.expiresAt - Date.now() > fiveMinutes;
 }
 
 /**
- * Check if Vivenu is authenticated
+ * Clear the in-memory token cache (e.g. after a credential change)
  */
-export async function isVivenuAuthenticated(): Promise<boolean> {
-	const cookieStore = await cookies();
-	const jwt = cookieStore.get(VIVENU_JWT_COOKIE)?.value;
-	const expiryStr = cookieStore.get(VIVENU_TOKEN_EXPIRY_COOKIE)?.value;
-
-	if (!jwt || !expiryStr) {
-		return false;
-	}
-
-	const expiryTime = new Date(expiryStr).getTime();
-	const now = Date.now();
-
-	return expiryTime > now;
+export function clearVivenuTokens(): void {
+	tokenCache = null;
 }
