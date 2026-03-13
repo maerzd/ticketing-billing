@@ -5,7 +5,7 @@ import { getBaseUrl } from "@/lib/utils";
 export const GET = async (request: Request) => {
 	const requestOrigin = new URL(request.url).origin;
 	const baseUrl = requestOrigin || getBaseUrl();
-
+	console.log(`redirectUri: ${baseUrl}/api/auth/callback`);
 	const signInUrl = await getSignInUrl({
 		redirectUri: `${baseUrl}/api/auth/callback`,
 	});

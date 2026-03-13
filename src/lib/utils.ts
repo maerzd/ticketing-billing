@@ -63,13 +63,11 @@ function isLocalhostUrl(url: string): boolean {
  * @returns The canonical base URL without trailing slash
  */
 export function getBaseUrl(): string {
-	// 1. Prefer explicitly configured canonical URL, unless it points to localhost in production.
-	if (process.env.NEXT_PUBLIC_SITE_URL) {
-		const siteUrl = normalizeUrl(process.env.NEXT_PUBLIC_SITE_URL);
 
-		if (!(process.env.NODE_ENV === "production" && isLocalhostUrl(siteUrl))) {
-			return siteUrl;
-		}
+
+	// 1. Fall back to the production URL when available.
+	if (process.env.VERCEL_PROJECT_PRODUCTION_URL) {
+		return `https://${normalizeUrl(process.env.VERCEL_PROJECT_PRODUCTION_URL)}`;
 	}
 
 	// 2. On Vercel, use the deployment URL (works for preview and production).
@@ -77,17 +75,12 @@ export function getBaseUrl(): string {
 		return `https://${normalizeUrl(process.env.VERCEL_URL)}`;
 	}
 
-	// 3. Fall back to the production URL when available.
-	if (process.env.VERCEL_PROJECT_PRODUCTION_URL) {
-		return `https://${normalizeUrl(process.env.VERCEL_PROJECT_PRODUCTION_URL)}`;
-	}
-
-	// 4. Fallback for local development
+	// 3. Fallback for local development
 	if (process.env.NODE_ENV === "development") {
 		return "http://localhost:3000";
 	}
 
-	// 5. Safe fallback - this should never be reached in production
+	// 4. Safe fallback - this should never be reached in production
 	throw new Error(
 		"Unable to determine base URL. Please set NEXT_PUBLIC_SITE_URL, VERCEL_URL, or VERCEL_PROJECT_PRODUCTION_URL environment variable.",
 	);
