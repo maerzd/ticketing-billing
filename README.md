@@ -53,6 +53,8 @@ An internal Next.js application for managing post-event billing and integrating 
    NEXT_PUBLIC_QONTO_REDIRECT_URI=http://localhost:3000/api/qonto/auth/callback
    QONTO_CLIENT_SECRET=your_client_secret
    QONTO_SANDBOX=true
+   QONTO_ORGANIZATION_ID=1acf250c-a068-47fa-ae9d-032b85c148dc
+   QONTO_REGISTRATION_ID=a584b060-8c96-488d-8bbb-74f0d3d2803c
    ```
 
    > **Note:** To generate a random secret, you can run: `openssl rand -base64 32`
@@ -134,6 +136,8 @@ src/
 | `NEXT_PUBLIC_QONTO_REDIRECT_URI` | Yes   | OAuth redirect URL |
 | `QONTO_CLIENT_SECRET`         | Yes      | OAuth client secret (server-side only) |
 | `QONTO_SANDBOX`               | No       | Use sandbox environment (default: true) |
+| `QONTO_ORGANIZATION_ID`       | No       | Restricts OAuth to one Qonto organization |
+| `QONTO_REGISTRATION_ID`       | No       | Pre-selects organization from onboarding registration |
 
 > **Security Note:** `QONTO_CLIENT_SECRET` should never be public. Keep it in `.env.local` and never commit to Git.
 

@@ -26,18 +26,36 @@ const getOAuthHeaders = (): Record<string, string> => {
 };
 
 const SCOPES = [
-	"offline_access",
 	"organization.read",
-	"client_invoices.read",
-	"client_invoice.write",
+	"offline_access",
+	"attachment.read",
+	"attachment.write",
 	"client.read",
-	"payment.write",
+	"client.write",
+	"client_invoice.write",
+	"client_invoices.read",
+	"einvoicing.read",
+	"request_transfers.write",
+	"sepa_direct_debit.read",
+	"sepa_direct_debit.write",
+	"supplier_invoice.read",
+	"supplier_invoice.write",
+	"team.read",
+	"webhook",
 ];
+
+type AuthorizationUrlOptions = {
+	organizationId?: string;
+	registrationId?: string;
+};
 
 /**
  * Generate the Qonto OAuth authorization URL
  */
-export function getAuthorizationUrl(state: string): string {
+export function getAuthorizationUrl(
+	state: string,
+	options: AuthorizationUrlOptions = {},
+): string {
 	const params = new URLSearchParams({
 		client_id: env.QONTO_CLIENT_ID,
 		redirect_uri: `${getBaseUrl()}/api/qonto/auth/callback`,
@@ -45,6 +63,14 @@ export function getAuthorizationUrl(state: string): string {
 		scope: SCOPES.join(" "),
 		state,
 	});
+
+	if (options.organizationId) {
+		params.set("organization_id", options.organizationId);
+	}
+
+	if (options.registrationId) {
+		params.set("registration_id", options.registrationId);
+	}
 
 	return `${getAuthUrl()}?${params.toString()}`;
 }

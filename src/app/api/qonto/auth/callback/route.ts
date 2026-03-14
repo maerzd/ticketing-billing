@@ -10,6 +10,8 @@ export async function GET(request: Request) {
 	const error = searchParams.get("error");
 	const errorDescription = searchParams.get("error_description");
 
+	console.log(searchParams.toString());
+
 	// Handle OAuth errors
 	if (error) {
 		console.error("OAuth error:", error, errorDescription);

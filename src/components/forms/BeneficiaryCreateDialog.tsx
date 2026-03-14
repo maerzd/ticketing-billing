@@ -90,10 +90,12 @@ export function BeneficiaryCreateDialog({
 
 	return (
 		<Dialog open={open} onOpenChange={setOpen}>
-			<DialogTrigger asChild>
-				<Button variant={triggerVariant} className={triggerClassName}>
-					{triggerLabel}
-				</Button>
+			<DialogTrigger
+				render={
+					<Button variant={triggerVariant} className={triggerClassName} />
+				}
+			>
+				{triggerLabel}
 			</DialogTrigger>
 			<DialogContent className="sm:max-w-2xl">
 				<DialogHeader>

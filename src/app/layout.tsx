@@ -14,8 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-	title: "Qonto Billing Tool",
-	description: "Internal tool for event billing and Qonto integration",
+	title: "zünftick",
 	robots: {
 		index: false,
 		follow: false,

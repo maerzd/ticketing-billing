@@ -9,8 +9,8 @@ export function QontoConnectCard() {
 				<CardTitle>Qonto Verbindung erforderlich</CardTitle>
 			</CardHeader>
 			<CardContent>
-				<Button asChild>
-					<Link href="/api/qonto/auth/login">Mit Qonto anmelden</Link>
+				<Button render={<Link href="/api/qonto/auth/login" />}>
+					Mit Qonto anmelden
 				</Button>
 			</CardContent>
 		</Card>

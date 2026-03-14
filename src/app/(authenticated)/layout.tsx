@@ -1,9 +1,11 @@
 import { Suspense } from "react";
 import { Toaster } from "sonner";
 import { AppSidebar } from "@/components/app-sidebar";
+import { AuthenticatedPageHeader } from "@/components/layout/page-header";
+import { TableSkeleton } from "@/components/my-ui/table-skeleton";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { queryOrganization } from "@/lib/qonto/queries";
+import { BreadcrumbProvider } from "@/context/breadcrumb-context";
 
 export const dynamic = "force-dynamic";
 
@@ -12,21 +14,25 @@ export default async function AuthenticatedLayout({
 }: Readonly<{
 	children: React.ReactNode;
 }>) {
-	const organizationResult = await queryOrganization();
-	const organization = organizationResult.success
-		? organizationResult.data.organization
-		: undefined;
-
 	return (
 		<SidebarProvider>
 			<TooltipProvider>
-				<AppSidebar organization={organization} />
-				<SidebarInset>
-					<Suspense fallback={<div className="p-8">Loading...</div>}>
-						{children}
-					</Suspense>
-					<Toaster />
-				</SidebarInset>
+				<BreadcrumbProvider>
+					<AppSidebar />
+					<SidebarInset>
+						<AuthenticatedPageHeader />
+						<Suspense
+							fallback={
+								<div className="p-8">
+									<TableSkeleton rows={5} />
+								</div>
+							}
+						>
+							<div className="p-8">{children}</div>
+						</Suspense>
+						<Toaster />
+					</SidebarInset>
+				</BreadcrumbProvider>
 			</TooltipProvider>
 		</SidebarProvider>
 	);

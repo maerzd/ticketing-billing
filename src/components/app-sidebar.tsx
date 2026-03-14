@@ -2,9 +2,12 @@
 
 import {
 	BanknoteArrowUp,
+	CalendarCheck,
+	CalendarClock,
 	FileText,
 	LayoutDashboard,
 	ShieldUser,
+	Store,
 } from "lucide-react";
 import type * as React from "react";
 import { NavMain } from "@/components/nav-main";
@@ -39,13 +42,28 @@ export function AppSidebar({
 			icon: LayoutDashboard,
 		},
 		{
+			title: "Upcoming Events",
+			url: "/events?tab=upcoming",
+			icon: CalendarClock,
+		},
+		{
+			title: "Past Events",
+			url: "/events?tab=past",
+			icon: CalendarCheck,
+		},
+		{
+			title: "POS",
+			url: "/pos",
+			icon: Store,
+		},
+		{
 			title: "Invoices",
-			url: "/invoices",
+			url: "/banking/invoices",
 			icon: FileText,
 		},
 		{
 			title: "Transfers",
-			url: "/transfers",
+			url: "/banking/transfers",
 			icon: BanknoteArrowUp,
 		},
 		{

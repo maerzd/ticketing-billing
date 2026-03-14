@@ -5,6 +5,6 @@ export async function GET() {
 	// Clear authentication tokens
 	await clearAuthTokens();
 
-	// Redirect to login page
-	redirect("/login");
+	// Redirect to dashboard
+	redirect("/");
 }
