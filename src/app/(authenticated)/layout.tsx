@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { Toaster } from "sonner";
 import { AppSidebar } from "@/components/app-sidebar";
 import { AuthenticatedPageHeader } from "@/components/layout/page-header";
+import { QontoTokenRefresher } from "@/components/my-ui/qonto-token-refresher";
 import { TableSkeleton } from "@/components/my-ui/table-skeleton";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -18,6 +19,7 @@ export default async function AuthenticatedLayout({
 		<SidebarProvider>
 			<TooltipProvider>
 				<BreadcrumbProvider>
+					<QontoTokenRefresher />
 					<AppSidebar />
 					<SidebarInset>
 						<AuthenticatedPageHeader />

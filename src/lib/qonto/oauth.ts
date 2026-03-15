@@ -36,8 +36,6 @@ const SCOPES = [
 	"client_invoices.read",
 	"einvoicing.read",
 	"request_transfers.write",
-	"sepa_direct_debit.read",
-	"sepa_direct_debit.write",
 	"supplier_invoice.read",
 	"supplier_invoice.write",
 	"team.read",

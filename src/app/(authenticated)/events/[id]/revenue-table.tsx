@@ -7,6 +7,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 import { ZUENFTICK_SHOP_IDS } from "@/lib/constants";
 import type { OrganizerData } from "@/lib/notion/notion-types";
+import type { Client } from "@/types/qonto/clients";
 import type { PosDevice } from "@/types/vivenu/pos";
 import type { RevenueResponse } from "@/types/vivenu/revenue";
 import type { TicketSales } from "@/types/vivenu/ticket-sales";
@@ -39,11 +40,15 @@ export default function RevenueTable({
 	revenue,
 	pos,
 	organizer,
+	clients,
+	eventStartDate,
 }: {
 	ticketAnalytics: TicketSales | null;
 	revenue: RevenueResponse | null;
 	pos: PosDevice[] | null;
 	organizer: OrganizerData | null;
+	clients: Client[];
+	eventStartDate: string;
 }) {
 	const revenuePerPos = calculateRevenuePerPosId(revenue);
 	const [setupFee, setSetupFee] = React.useState(25);
@@ -103,6 +108,8 @@ export default function RevenueTable({
 				revenuePerPos={revenuePerPos}
 				eventTaxRate={eventTaxValue}
 				setupFee={setupFee}
+				clients={clients}
+				eventStartDate={eventStartDate}
 			/>
 		</div>
 	);

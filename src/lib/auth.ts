@@ -9,6 +9,16 @@ const ACCESS_TOKEN_COOKIE = "qonto_access_token";
 const REFRESH_TOKEN_COOKIE = "qonto_refresh_token";
 const TOKEN_EXPIRY_COOKIE = "qonto_token_expiry";
 
+function isCookieMutationNotAllowedError(error: unknown): boolean {
+	if (!(error instanceof Error)) {
+		return false;
+	}
+
+	return error.message.includes(
+		"Cookies can only be modified in a Server Action or Route Handler",
+	);
+}
+
 /**
  * Store tokens in secure HTTP-only cookies
  */
@@ -62,11 +72,26 @@ export async function getAccessToken(): Promise<string> {
 	if (!accessToken || expiryTime - now < fiveMinutes) {
 		try {
 			const newTokens = await refreshAccessToken(refreshToken);
-			await setAuthTokens(newTokens);
 			accessToken = newTokens.access_token;
+
+			// During Server Component rendering Next.js allows reading cookies but not
+			// mutating them. We still return the fresh access token for this request.
+			try {
+				await setAuthTokens(newTokens);
+			} catch (error) {
+				if (!isCookieMutationNotAllowedError(error)) {
+					throw error;
+				}
+			}
 		} catch (_error) {
 			// If refresh fails, clear cookies and throw error
-			await clearAuthTokens();
+			try {
+				await clearAuthTokens();
+			} catch (error) {
+				if (!isCookieMutationNotAllowedError(error)) {
+					throw error;
+				}
+			}
 			throw new UnauthorizedError("Token refresh failed");
 		}
 	}
@@ -82,6 +107,42 @@ export async function clearAuthTokens() {
 	cookieStore.delete(ACCESS_TOKEN_COOKIE);
 	cookieStore.delete(REFRESH_TOKEN_COOKIE);
 	cookieStore.delete(TOKEN_EXPIRY_COOKIE);
+}
+
+/**
+ * Refresh auth tokens using the refresh token cookie.
+ * Intended for Route Handlers or Server Actions where cookie mutation is allowed.
+ * Only calls Qonto when the access token is expired or within 5 minutes of expiry
+ * to avoid burning rotating refresh tokens unnecessarily.
+ */
+export async function refreshAuthTokensFromCookies(): Promise<boolean> {
+	const cookieStore = await cookies();
+	const refreshToken = cookieStore.get(REFRESH_TOKEN_COOKIE)?.value;
+	const expiryStr = cookieStore.get(TOKEN_EXPIRY_COOKIE)?.value;
+	const accessToken = cookieStore.get(ACCESS_TOKEN_COOKIE)?.value;
+
+	if (!refreshToken) {
+		return false;
+	}
+
+	// Don't refresh if the access token is still valid with >5 min remaining.
+	const expiryTime = expiryStr ? new Date(expiryStr).getTime() : 0;
+	const fiveMinutes = 5 * 60 * 1000;
+	if (accessToken && expiryTime - Date.now() > fiveMinutes) {
+		return true;
+	}
+
+	try {
+		const newTokens = await refreshAccessToken(refreshToken);
+		await setAuthTokens(newTokens);
+		return true;
+	} catch (error) {
+		// Log for diagnostics but do NOT clear cookies here — a failed proactive
+		// refresh should not log the user out. getAccessToken() will handle
+		// the authoritative failure path when an actual API call is needed.
+		console.error("Proactive token refresh failed:", error);
+		return false;
+	}
 }
 
 /**

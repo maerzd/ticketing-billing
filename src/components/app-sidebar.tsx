@@ -8,6 +8,7 @@ import {
 	LayoutDashboard,
 	ShieldUser,
 	Store,
+	Users,
 } from "lucide-react";
 import type * as React from "react";
 import { NavMain } from "@/components/nav-main";
@@ -70,6 +71,11 @@ export function AppSidebar({
 			title: "Beneficiaries",
 			url: "/banking/beneficiaries",
 			icon: ShieldUser,
+		},
+		{
+			title: "Clients",
+			url: "/banking/clients",
+			icon: Users,
 		},
 	];
 

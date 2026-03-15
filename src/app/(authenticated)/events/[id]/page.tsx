@@ -4,6 +4,7 @@ import LabelText from "@/components/my-ui/label-text";
 import { Card, CardContent } from "@/components/ui/card";
 import { BreadcrumbSetter } from "@/context/breadcrumb-context";
 import { queryOrganizer } from "@/lib/notion/client";
+import { queryClients } from "@/lib/qonto/queries";
 import {
 	fetchAllPOS,
 	fetchEvent,
@@ -29,7 +30,7 @@ export async function generateStaticParams(): Promise<PageParam[]> {
 export default async function Page({ params }: { params: Promise<PageParam> }) {
 	const eventId = (await params).id;
 	const user = await withAuth();
-	const [event, ticketSales, revenue, pos] = await Promise.all([
+	const [event, ticketSales, revenue, pos, clientsResult] = await Promise.all([
 		fetchEvent(eventId),
 		fetchTicketSales({
 			eventId: eventId,
@@ -42,6 +43,7 @@ export default async function Page({ params }: { params: Promise<PageParam> }) {
 			dimensions: ["itemType"],
 		}),
 		fetchAllPOS(),
+		queryClients(),
 	]);
 
 	if (!event) {
@@ -52,8 +54,7 @@ export default async function Page({ params }: { params: Promise<PageParam> }) {
 		event.attributes?.organizerid,
 		user.organizationId,
 	);
-	console.log(event.attributes);
-	console.log(organizer);
+	const clients = clientsResult.success ? clientsResult.data.clients : [];
 	return (
 		<div className="max-w-4xl">
 			<BreadcrumbSetter eventName={event.name} />
@@ -87,6 +88,8 @@ export default async function Page({ params }: { params: Promise<PageParam> }) {
 					organizer={organizer}
 					revenue={revenue}
 					pos={pos}
+					clients={clients}
+					eventStartDate={event.start}
 				/>
 			</div>
 			<div className="my-8">

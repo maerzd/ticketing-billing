@@ -36,6 +36,7 @@ export default async function Page() {
 						</div>
 						<Button
 							render={<Link href="/api/qonto/auth/logout" />}
+							nativeButton={false}
 							variant="outline"
 						>
 							Qonto Logout
@@ -92,11 +93,14 @@ export default async function Page() {
 						</CardDescription>
 					</CardHeader>
 					<CardContent>
-						<Link href="/invoices">
-							<Button variant="outline" className="w-full">
-								Rechnungen anzeigen
-							</Button>
-						</Link>
+						<Button
+							render={<Link href="/invoices" />}
+							nativeButton={false}
+							variant="outline"
+							className="w-full"
+						>
+							Rechnungen anzeigen
+						</Button>
 					</CardContent>
 				</Card>
 
@@ -109,11 +113,14 @@ export default async function Page() {
 						<CardDescription>SEPA-Überweisungen erstellen</CardDescription>
 					</CardHeader>
 					<CardContent>
-						<Link href="/transfers">
-							<Button variant="outline" className="w-full">
-								Überweisungen anzeigen
-							</Button>
-						</Link>
+						<Button
+							render={<Link href="/transfers" />}
+							nativeButton={false}
+							variant="outline"
+							className="w-full"
+						>
+							Überweisungen anzeigen
+						</Button>
 					</CardContent>
 				</Card>
 
@@ -126,11 +133,14 @@ export default async function Page() {
 						<CardDescription>SEPA-Begünstigte verwalten</CardDescription>
 					</CardHeader>
 					<CardContent>
-						<Link href="/banking/beneficiaries">
-							<Button variant="outline" className="w-full">
-								Begünstigte anzeigen
-							</Button>
-						</Link>
+						<Button
+							render={<Link href="/banking/beneficiaries" />}
+							nativeButton={false}
+							variant="outline"
+							className="w-full"
+						>
+							Begünstigte anzeigen
+						</Button>
 					</CardContent>
 				</Card>
 			</div>

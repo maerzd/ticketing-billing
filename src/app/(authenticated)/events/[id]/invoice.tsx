@@ -1,7 +1,10 @@
 "use client";
 
 import { Copy } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
+import { toast } from "sonner";
+import { createInvoice } from "@/actions/invoices";
 import { Button } from "@/components/ui/button";
 import {
 	Table,
@@ -19,6 +22,7 @@ import {
 } from "@/components/ui/tooltip";
 import { SALES_TAX_RATE, TICKET_COMMISSION_RATE } from "@/lib/constants";
 import { formatCurrency } from "@/lib/utils";
+import type { Client } from "@/types/qonto/clients";
 
 interface InvoiceData {
 	items: {
@@ -90,6 +94,8 @@ export default function Invoice({
 	eventTaxRate = 0,
 	setupFee = 25,
 	ticketCommissionRate = TICKET_COMMISSION_RATE,
+	clients = [],
+	eventStartDate,
 }: {
 	totalRevenue: number;
 	ticketsCount: number;
@@ -98,7 +104,10 @@ export default function Invoice({
 	ticketCommissionRate?: number;
 	officialPos?: Set<string>;
 	revenuePerPos?: Record<string, number>;
+	clients?: Client[];
+	eventStartDate?: string;
 }): React.ReactNode {
+	const router = useRouter();
 	// Systemgebühr: 1€ pro verkauftem Ticket
 	const systemFee = ticketsCount * 1;
 	const systemFeeWithTax = systemFee * (1 + SALES_TAX_RATE);
@@ -195,6 +204,73 @@ export default function Invoice({
 	const invoiceTextRef = useRef<HTMLDivElement>(null);
 	const [copied, setCopied] = useState(false);
 	const [showTooltip, setShowTooltip] = useState(false);
+	const [selectedClientId, setSelectedClientId] = useState("");
+	const [isCreating, setIsCreating] = useState(false);
+
+	const formatIsoDate = (date: Date) => date.toISOString().split("T")[0];
+
+	const handleCreateDraft = async () => {
+		if (!selectedClientId) return;
+
+		setIsCreating(true);
+		try {
+			const today = new Date();
+			const dueDate = new Date(today);
+			dueDate.setDate(dueDate.getDate() + 14);
+
+			const result = await createInvoice({
+				client_id: selectedClientId,
+				payment_methods: { iban: "DE80100101236302300273" }, // Dummy IBAN, da für Drafts in Qonto keine Zahlung hinterlegt werden muss
+				issue_date: formatIsoDate(today),
+				due_date: formatIsoDate(dueDate),
+				performance_start_date: eventStartDate?.split("T")[0],
+				status: "draft",
+				currency: "EUR",
+				items: [
+					{
+						title: "Systemgebühr",
+						quantity: "1",
+						unit_price: {
+							value: systemFee.toFixed(2),
+							currency: "EUR",
+						},
+						vat_rate: SALES_TAX_RATE.toString(),
+					},
+					{
+						title: "Vorverkaufsgebühr",
+						quantity: "1",
+						unit_price: {
+							value: variableFee.toFixed(2),
+							currency: "EUR",
+						},
+						vat_rate: Number(eventTaxRate).toString(),
+					},
+					{
+						title: "Einrichtungsgebühr",
+						quantity: "1",
+						unit_price: {
+							value: setupFee.toFixed(2),
+							currency: "EUR",
+						},
+						vat_rate: SALES_TAX_RATE.toString(),
+					},
+				],
+			});
+
+			if (!result.success) {
+				toast.error(result.error ?? "Rechnung konnte nicht erstellt werden");
+				return;
+			}
+
+			toast.success("Rechnungsentwurf in Qonto erstellt");
+			router.push("/banking/invoices");
+		} catch (error) {
+			toast.error("Ein unerwarteter Fehler ist aufgetreten");
+			console.error(error);
+		} finally {
+			setIsCreating(false);
+		}
+	};
 
 	const handleCopy = async () => {
 		if (!invoiceTextRef.current) return;
@@ -214,6 +290,43 @@ export default function Invoice({
 
 	return (
 		<>
+			<div className="my-4 space-y-3 rounded-xl bg-muted/50 p-4 ring-1 ring-muted">
+				<h3 className="font-semibold">Entwurf in Qonto erstellen</h3>
+				{clients.length === 0 ? (
+					<p className="text-muted-foreground text-sm">
+						Keine Qonto-Kunden verfugbar.
+					</p>
+				) : (
+					<div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+						<div className="w-full sm:max-w-sm">
+							<label htmlFor="qonto-client" className="mb-1 block text-sm">
+								Kunde
+							</label>
+							<select
+								id="qonto-client"
+								value={selectedClientId}
+								onChange={(event) => setSelectedClientId(event.target.value)}
+								disabled={isCreating}
+								className="block w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-base text-slate-900 focus:border-slate-950 focus:outline-none focus:ring-1 focus:ring-slate-950 disabled:cursor-not-allowed disabled:opacity-50"
+							>
+								<option value="">Bitte Kunde auswahlen</option>
+								{clients.map((client) => (
+									<option key={client.id} value={client.id}>
+										{client.name ||
+											`${client.first_name ?? ""} ${client.last_name ?? ""}`.trim()}
+									</option>
+								))}
+							</select>
+						</div>
+						<Button
+							onClick={handleCreateDraft}
+							disabled={isCreating || !selectedClientId}
+						>
+							{isCreating ? "Entwurf wird erstellt..." : "Entwurf erstellen"}
+						</Button>
+					</div>
+				)}
+			</div>
 			<div>
 				<h3 className="my-4 font-semibold">Rechnungsposten</h3>
 				<div className="rounded-xl bg-muted/50 p-4 ring-1 ring-muted">
