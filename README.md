@@ -1,3 +1,59 @@
+# Ticketing Billing Monorepo
+
+This repository now uses a Yarn workspaces monorepo structure:
+
+- `apps/web` - Next.js billing application
+- `infra/cdk` - AWS CDK infrastructure for DynamoDB tables
+
+## Monorepo Quickstart
+
+From repository root:
+
+```bash
+yarn install
+yarn dev
+```
+
+## Monorepo Scripts
+
+- `yarn dev` - Run the Next.js app from `apps/web`
+- `yarn build` - Build the Next.js app from `apps/web`
+- `yarn start` - Start the built Next.js app from `apps/web`
+- `yarn lint` - Run Biome lint in `apps/web`
+- `yarn cdk:synth` - Synthesize the CDK stack in `infra/cdk`
+- `yarn cdk:diff` - Show infrastructure diff
+- `yarn cdk:bootstrap` - Bootstrap CDK in target AWS environment
+- `yarn cdk:deploy` - Deploy the DynamoDB infrastructure
+
+## DynamoDB Stack (CDK)
+
+The CDK stack provisions:
+
+- `Organizers`
+- `BillingRecords`
+- `BillingRecords` GSI `StatusIndex` (`status`, `triggered_at`)
+- `BillingRecords` GSI `EventIndex` (`event_id`)
+
+Implemented settings:
+
+- Billing mode: `PAY_PER_REQUEST`
+- Removal policy: `RETAIN`
+- Point-in-time recovery: enabled
+- Encryption: AWS managed
+- Explicit table names for stable runtime config
+
+## Runtime Environment Variables (Vercel)
+
+```bash
+AWS_REGION=
+AWS_ACCESS_KEY_ID=
+AWS_SECRET_ACCESS_KEY=
+DYNAMODB_ORGANIZERS_TABLE=Organizers
+DYNAMODB_BILLING_RECORDS_TABLE=BillingRecords
+```
+
+---
+
 # Qonto Billing Tool
 
 An internal Next.js application for managing post-event billing and integrating with Qonto for invoice creation and SEPA transfers.
