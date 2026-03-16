@@ -287,7 +287,7 @@ describe("transformVenuePageToData", () => {
 					name: {
 						id: "2",
 						type: "rich_text",
-						rich_text: richText("Organizer Name"),
+						rich_text: richText("Veranstalter Name"),
 					},
 					website: { id: "3", type: "url", url: "https://org.com" },
 					email: { id: "4", type: "email", email: "contact@org.com" },
@@ -327,7 +327,7 @@ describe("transformVenuePageToData", () => {
 				expect(data).toEqual({
 					id: "organizer-page-1",
 					organizerid: "ORG123",
-					name: "Organizer Name",
+					name: "Veranstalter Name",
 					website: "https://org.com",
 					email: "contact@org.com",
 					phone: "+49123456789",

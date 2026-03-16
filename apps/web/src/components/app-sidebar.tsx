@@ -2,6 +2,7 @@
 
 import {
 	BanknoteArrowUp,
+	Building2,
 	CalendarCheck,
 	CalendarClock,
 	FileText,
@@ -76,6 +77,11 @@ export function AppSidebar({
 			title: "Clients",
 			url: "/banking/clients",
 			icon: Users,
+		},
+		{
+			title: "Veranstalter",
+			url: "/organizers",
+			icon: Building2,
 		},
 	];
 
