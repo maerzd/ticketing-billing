@@ -5,10 +5,6 @@
 		"clientKind": "git",
 		"useIgnoreFile": true
 	},
-	"files": {
-		"ignoreUnknown": false,
-		"includes": ["**", "!src/components/ui", "!src/components/charts"]
-	},
 	"formatter": {
 		"enabled": true,
 		"indentStyle": "tab"
