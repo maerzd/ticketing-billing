@@ -1,147 +1,147 @@
 import {
-    ConditionalCheckFailedException,
-    InternalServerError,
+	ConditionalCheckFailedException,
+	InternalServerError,
 } from "@aws-sdk/client-dynamodb";
 import {
-    GetCommand,
-    PutCommand,
-    ScanCommand,
-    UpdateCommand,
+	GetCommand,
+	PutCommand,
+	ScanCommand,
+	UpdateCommand,
 } from "@aws-sdk/lib-dynamodb";
 import env from "@/env";
 import { getDynamoDBDocumentClient } from "@/lib/dynamodb/client";
 import { AppError } from "@/lib/errors";
 import {
-    type CreateOrganizerInput,
-    CreateOrganizerInputSchema,
-    type OrganizerRecord,
-    OrganizerRecordSchema,
-    type UpdateOrganizerInput,
-    UpdateOrganizerInputSchema,
+	type CreateOrganizerInput,
+	CreateOrganizerInputSchema,
+	type OrganizerRecord,
+	OrganizerRecordSchema,
+	type UpdateOrganizerInput,
+	UpdateOrganizerInputSchema,
 } from "@/types/organizers";
 
 export class OrganizersService {
-    private readonly tableName = env.DYNAMODB_ORGANIZERS_TABLE;
+	private readonly tableName = env.DYNAMODB_ORGANIZERS_TABLE;
 
-    private readonly client = getDynamoDBDocumentClient();
+	private readonly client = getDynamoDBDocumentClient();
 
-    async listOrganizers() {
-        const results: OrganizerRecord[] = [];
-        let lastEvaluatedKey: Record<string, unknown> | undefined;
+	async listOrganizers() {
+		const results: OrganizerRecord[] = [];
+		let lastEvaluatedKey: Record<string, unknown> | undefined;
 
-        do {
-            const response = await this.client.send(
-                new ScanCommand({
-                    TableName: this.tableName,
-                    ExclusiveStartKey: lastEvaluatedKey,
-                }),
-            );
+		do {
+			const response = await this.client.send(
+				new ScanCommand({
+					TableName: this.tableName,
+					ExclusiveStartKey: lastEvaluatedKey,
+				}),
+			);
 
-            for (const item of response.Items ?? []) {
-                results.push(OrganizerRecordSchema.parse(item));
-            }
+			for (const item of response.Items ?? []) {
+				results.push(OrganizerRecordSchema.parse(item));
+			}
 
-            lastEvaluatedKey = response.LastEvaluatedKey;
-        } while (lastEvaluatedKey);
+			lastEvaluatedKey = response.LastEvaluatedKey;
+		} while (lastEvaluatedKey);
 
-        results.sort((a, b) => b.updated_at.localeCompare(a.updated_at));
-        return results;
-    }
+		results.sort((a, b) => b.updated_at.localeCompare(a.updated_at));
+		return results;
+	}
 
-    async getOrganizer(organizerid: string) {
-        const response = await this.client.send(
-            new GetCommand({
-                TableName: this.tableName,
-                Key: { organizerid },
-            }),
-        );
+	async getOrganizer(organizerid: string) {
+		const response = await this.client.send(
+			new GetCommand({
+				TableName: this.tableName,
+				Key: { organizerid },
+			}),
+		);
 
-        if (!response.Item) {
-            return null;
-        }
+		if (!response.Item) {
+			return null;
+		}
 
-        return OrganizerRecordSchema.parse(response.Item);
-    }
+		return OrganizerRecordSchema.parse(response.Item);
+	}
 
-    async createOrganizer(input: CreateOrganizerInput) {
-        const parsed = CreateOrganizerInputSchema.parse(input);
-        const now = new Date().toISOString();
+	async createOrganizer(input: CreateOrganizerInput) {
+		const parsed = CreateOrganizerInputSchema.parse(input);
+		const now = new Date().toISOString();
 
-        const item: OrganizerRecord = {
-            ...parsed,
-            created_at: now,
-            updated_at: now,
-        };
+		const item: OrganizerRecord = {
+			...parsed,
+			created_at: now,
+			updated_at: now,
+		};
 
-        try {
-            await this.client.send(
-                new PutCommand({
-                    TableName: this.tableName,
-                    Item: item,
-                    ConditionExpression: "attribute_not_exists(organizerid)",
-                }),
-            );
-        } catch (error) {
-            if (error instanceof ConditionalCheckFailedException) {
-                throw new AppError(
-                    "An organizer with this organizer ID already exists",
-                    409,
-                );
-            }
+		try {
+			await this.client.send(
+				new PutCommand({
+					TableName: this.tableName,
+					Item: item,
+					ConditionExpression: "attribute_not_exists(organizerid)",
+				}),
+			);
+		} catch (error) {
+			if (error instanceof ConditionalCheckFailedException) {
+				throw new AppError(
+					"An organizer with this organizer ID already exists",
+					409,
+				);
+			}
 
-            if (error instanceof InternalServerError) {
-                throw new AppError("DynamoDB internal server error", 500);
-            }
+			if (error instanceof InternalServerError) {
+				throw new AppError("DynamoDB internal server error", 500);
+			}
 
-            throw error;
-        }
+			throw error;
+		}
 
-        return item;
-    }
+		return item;
+	}
 
-    async updateOrganizer(input: UpdateOrganizerInput) {
-        const parsed = UpdateOrganizerInputSchema.parse(input);
-        const { organizerid, ...patch } = parsed;
-        const now = new Date().toISOString();
+	async updateOrganizer(input: UpdateOrganizerInput) {
+		const parsed = UpdateOrganizerInputSchema.parse(input);
+		const { organizerid, ...patch } = parsed;
+		const now = new Date().toISOString();
 
-        const expressionNames: Record<string, string> = {
-            "#updated_at": "updated_at",
-        };
-        const expressionValues: Record<string, unknown> = {
-            ":updated_at": now,
-        };
-        const updates: string[] = ["#updated_at = :updated_at"];
+		const expressionNames: Record<string, string> = {
+			"#updated_at": "updated_at",
+		};
+		const expressionValues: Record<string, unknown> = {
+			":updated_at": now,
+		};
+		const updates: string[] = ["#updated_at = :updated_at"];
 
-        for (const [key, value] of Object.entries(patch)) {
-            expressionNames[`#${key}`] = key;
-            expressionValues[`:${key}`] = value;
-            updates.push(`#${key} = :${key}`);
-        }
+		for (const [key, value] of Object.entries(patch)) {
+			expressionNames[`#${key}`] = key;
+			expressionValues[`:${key}`] = value;
+			updates.push(`#${key} = :${key}`);
+		}
 
-        try {
-            const response = await this.client.send(
-                new UpdateCommand({
-                    TableName: this.tableName,
-                    Key: { organizerid },
-                    UpdateExpression: `SET ${updates.join(", ")}`,
-                    ExpressionAttributeNames: expressionNames,
-                    ExpressionAttributeValues: expressionValues,
-                    ConditionExpression: "attribute_exists(organizerid)",
-                    ReturnValues: "ALL_NEW",
-                }),
-            );
+		try {
+			const response = await this.client.send(
+				new UpdateCommand({
+					TableName: this.tableName,
+					Key: { organizerid },
+					UpdateExpression: `SET ${updates.join(", ")}`,
+					ExpressionAttributeNames: expressionNames,
+					ExpressionAttributeValues: expressionValues,
+					ConditionExpression: "attribute_exists(organizerid)",
+					ReturnValues: "ALL_NEW",
+				}),
+			);
 
-            if (!response.Attributes) {
-                throw new AppError("Veranstalter not found", 404);
-            }
+			if (!response.Attributes) {
+				throw new AppError("Veranstalter not found", 404);
+			}
 
-            return OrganizerRecordSchema.parse(response.Attributes);
-        } catch (error) {
-            if (error instanceof ConditionalCheckFailedException) {
-                throw new AppError("Veranstalter not found", 404);
-            }
+			return OrganizerRecordSchema.parse(response.Attributes);
+		} catch (error) {
+			if (error instanceof ConditionalCheckFailedException) {
+				throw new AppError("Veranstalter not found", 404);
+			}
 
-            throw error;
-        }
-    }
+			throw error;
+		}
+	}
 }

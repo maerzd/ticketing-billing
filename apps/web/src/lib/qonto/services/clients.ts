@@ -25,12 +25,12 @@ interface ListClientsOptions {
 	page?: number;
 	per_page?: number;
 	sort_by?:
-	| "created_at:asc"
-	| "created_at:desc"
-	| "updated_at:asc"
-	| "updated_at:desc"
-	| "name:asc"
-	| "name:desc";
+		| "created_at:asc"
+		| "created_at:desc"
+		| "updated_at:asc"
+		| "updated_at:desc"
+		| "name:asc"
+		| "name:desc";
 	filter?: ListClientsFilter;
 	kind?: ClientKind;
 }
@@ -38,7 +38,7 @@ interface ListClientsOptions {
 export type { CreateClientInput, UpdateClientInput };
 
 export class ClientsService {
-	constructor(private readonly client: QontoClient) { }
+	constructor(private readonly client: QontoClient) {}
 
 	async listClients(options: ListClientsOptions = {}) {
 		const {

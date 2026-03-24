@@ -37,7 +37,7 @@ const getClientLabel = (client: Client) => {
 	return fullName || "-";
 };
 
-const getKindLabel = (kind: Client["kind"]) => {
+const _getKindLabel = (kind: Client["kind"]) => {
 	switch (kind) {
 		case "company":
 			return "Company";

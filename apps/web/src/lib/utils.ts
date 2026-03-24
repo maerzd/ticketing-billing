@@ -5,7 +5,7 @@ export function cn(...inputs: ClassValue[]) {
 	return twMerge(clsx(inputs));
 }
 
-export interface FormatNumberOptions extends Intl.NumberFormatOptions { }
+export interface FormatNumberOptions extends Intl.NumberFormatOptions {}
 
 export function formatNumber(
 	num: number | undefined | null,
@@ -42,7 +42,7 @@ function normalizeUrl(url: string): string {
 	return url.replace(/\/$/, "");
 }
 
-function isLocalhostUrl(url: string): boolean {
+function _isLocalhostUrl(url: string): boolean {
 	try {
 		const parsed = new URL(url);
 		return ["localhost", "127.0.0.1", "::1"].includes(parsed.hostname);
@@ -63,8 +63,6 @@ function isLocalhostUrl(url: string): boolean {
  * @returns The canonical base URL without trailing slash
  */
 export function getBaseUrl(): string {
-
-
 	// 1. Fall back to the production URL when available.
 	if (process.env.VERCEL_PROJECT_PRODUCTION_URL) {
 		return `https://${normalizeUrl(process.env.VERCEL_PROJECT_PRODUCTION_URL)}`;

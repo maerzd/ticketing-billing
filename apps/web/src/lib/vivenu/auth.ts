@@ -112,7 +112,10 @@ export async function getVivenuHubbleToken(): Promise<string> {
 	);
 
 	const expiresIn = loginResponse.expiresIn ?? DEFAULT_TOKEN_EXPIRY;
-	tokenCache = { jwt: loginResponse.jwt, expiresAt: Date.now() + expiresIn * 1000 };
+	tokenCache = {
+		jwt: loginResponse.jwt,
+		expiresAt: Date.now() + expiresIn * 1000,
+	};
 
 	return tokenCache.jwt;
 }
