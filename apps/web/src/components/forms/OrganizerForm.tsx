@@ -1,58 +1,129 @@
 "use client";
 
-import { Field, FieldLabel } from "@/components/ui/field";
+import { zodResolver } from "@hookform/resolvers/zod";
+import {
+	type CreateOrganizerInput,
+	CreateOrganizerInputSchema,
+	type OrganizerRecord,
+	type OrganizerStatus,
+} from "@ticketing-billing/types/ddb";
+import { useEffect, useMemo, useState } from "react";
+import {
+	type FieldPath,
+	type UseFormRegisterReturn,
+	useForm,
+} from "react-hook-form";
+import { z } from "zod";
+import {
+	Field,
+	FieldGroup,
+	FieldLabel,
+	FieldLegend,
+	FieldSeparator,
+} from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import type {
-	CreateOrganizerInput,
-	OrganizerRecord,
-	OrganizerStatus,
-	UpdateOrganizerInput,
-} from "@/types/organizers";
 
-export interface OrganizerFormValues {
-	organizerid: string;
-	name: string;
-	first_name: string;
-	last_name: string;
-	email: string;
-	status: OrganizerStatus;
-	vat_number: string;
-	tax_identification_number: string;
-	tax_rate: string;
-	iban: string;
-	bic: string;
-	billing_street_address: string;
-	billing_city: string;
-	billing_zip_code: string;
-	billing_country: string;
-	qonto_client_id: string;
-	qonto_beneficiary_id: string;
-	fee_pct_rate: string;
-	fee_per_ticket: string;
-	fee_flat: string;
-}
+const TAX_RATE_VALUES = ["0", "0.07", "0.19"] as const;
+
+export const OrganizerFormSchema = z.object({
+	organizerId: z.string(),
+	name: z.string(),
+	firstName: z.string(),
+	lastName: z.string(),
+	email: z.string(),
+	status: z.custom<OrganizerStatus>(),
+	vatNumber: z.string(),
+	taxIdentificationNumber: z.string(),
+	taxRate: z.enum(TAX_RATE_VALUES),
+	sepaBeneficiaryName: z.string(),
+	iban: z.string(),
+	bic: z.string(),
+	billingAddress: z.object({
+		firstName: z.string(),
+		lastName: z.string(),
+		street: z.string(),
+		city: z.string(),
+		zipCode: z.string(),
+		country: z.string(),
+	}),
+	sevdeskCustomerId: z.string(),
+	qontoBeneficiaryId: z.string(),
+	feeOverride: z.object({
+		pctRate: z.string(),
+		perTicket: z.string(),
+		flat: z.string(),
+	}),
+});
+
+export const OrganizerFormToCreateInputSchema = OrganizerFormSchema.transform(
+	(values) => {
+		const trimToOptional = (value: string) => {
+			const trimmed = value.trim();
+			return trimmed.length > 0 ? trimmed : undefined;
+		};
+
+		const trimToOptionalNumber = (value: string) => {
+			const trimmed = value.trim();
+			if (!trimmed) {
+				return undefined;
+			}
+
+			const parsed = Number(trimmed);
+			return Number.isFinite(parsed) ? parsed : undefined;
+		};
+
+		const feePctRate = trimToOptionalNumber(values.feeOverride.pctRate);
+		const feePerTicket = trimToOptionalNumber(values.feeOverride.perTicket);
+		const feeFlat = trimToOptionalNumber(values.feeOverride.flat);
+
+		const hasAnyFeeOverride =
+			feePctRate !== undefined ||
+			feePerTicket !== undefined ||
+			feeFlat !== undefined;
+
+		return {
+			organizerId: values.organizerId.trim(),
+			name: trimToOptional(values.name),
+			firstName: trimToOptional(values.firstName),
+			lastName: trimToOptional(values.lastName),
+			email: values.email.trim(),
+			status: values.status,
+			vatNumber: trimToOptional(values.vatNumber),
+			taxIdentificationNumber: trimToOptional(values.taxIdentificationNumber),
+			taxRate: Number(values.taxRate),
+			sepaBeneficiaryName: trimToOptional(values.sepaBeneficiaryName),
+			iban: trimToOptional(values.iban),
+			bic: trimToOptional(values.bic),
+			billingAddress: {
+				firstName: values.billingAddress.firstName.trim(),
+				lastName: values.billingAddress.lastName.trim(),
+				street: values.billingAddress.street.trim(),
+				city: values.billingAddress.city.trim(),
+				zipCode: values.billingAddress.zipCode.trim(),
+				country: values.billingAddress.country.trim(),
+			},
+			sevdeskCustomerId: trimToOptional(values.sevdeskCustomerId),
+			qontoBeneficiaryId: trimToOptional(values.qontoBeneficiaryId),
+			feeOverride: hasAnyFeeOverride
+				? {
+						pctRate: feePctRate ?? 0,
+						perTicket: Math.round(feePerTicket ?? 0),
+						flat: Math.round(feeFlat ?? 0),
+					}
+				: undefined,
+		};
+	},
+);
+
+export type OrganizerFormValues = z.infer<typeof OrganizerFormSchema>;
 
 interface OrganizerFormProps {
-	values: OrganizerFormValues;
-	onChange: (values: OrganizerFormValues) => void;
+	initialValues: OrganizerFormValues;
+	onSubmit: (values: CreateOrganizerInput) => void;
 	disabled?: boolean;
 	hideOrganizerId?: boolean;
+	formId: string;
 }
-
-const toOptional = (value: string) => {
-	const trimmed = value.trim();
-	return trimmed.length > 0 ? trimmed : undefined;
-};
-
-const toOptionalNumber = (value: string) => {
-	const trimmed = value.trim();
-	if (!trimmed) {
-		return undefined;
-	}
-
-	const parsed = Number(trimmed);
-	return Number.isFinite(parsed) ? parsed : undefined;
-};
 
 export const generateOrganizerId = () => {
 	const random = Math.random().toString(36).slice(2, 10);
@@ -60,357 +131,434 @@ export const generateOrganizerId = () => {
 };
 
 export const defaultOrganizerFormValues = (): OrganizerFormValues => ({
-	organizerid: generateOrganizerId(),
+	organizerId: generateOrganizerId(),
 	name: "",
-	first_name: "",
-	last_name: "",
+	firstName: "",
+	lastName: "",
 	email: "",
 	status: "ACTIVE",
-	vat_number: "",
-	tax_identification_number: "",
-	tax_rate: "19",
+	vatNumber: "",
+	taxIdentificationNumber: "",
+	taxRate: "0.19",
+	sepaBeneficiaryName: "",
 	iban: "",
 	bic: "",
-	billing_street_address: "",
-	billing_city: "",
-	billing_zip_code: "",
-	billing_country: "DE",
-	qonto_client_id: "",
-	qonto_beneficiary_id: "",
-	fee_pct_rate: "",
-	fee_per_ticket: "",
-	fee_flat: "",
+	billingAddress: {
+		firstName: "",
+		lastName: "",
+		street: "",
+		city: "",
+		zipCode: "",
+		country: "DE",
+	},
+	sevdeskCustomerId: "",
+	qontoBeneficiaryId: "",
+	feeOverride: {
+		pctRate: "",
+		perTicket: "",
+		flat: "",
+	},
 });
+
+const normalizeTaxRateForForm = (
+	value: number,
+): OrganizerFormValues["taxRate"] => {
+	if (value <= 0) {
+		return "0";
+	}
+
+	if (value <= 0.07) {
+		return "0.07";
+	}
+
+	return "0.19";
+};
 
 export const organizerToFormValues = (
 	organizer: OrganizerRecord,
 ): OrganizerFormValues => ({
-	organizerid: organizer.organizerid,
-	name: organizer.name,
-	first_name: organizer.first_name,
-	last_name: organizer.last_name,
+	organizerId: organizer.organizerId,
+	name: organizer.name ?? "",
+	firstName: organizer.firstName ?? "",
+	lastName: organizer.lastName ?? "",
 	email: organizer.email,
-	status: organizer.status,
-	vat_number: organizer.vat_number,
-	tax_identification_number: organizer.tax_identification_number,
-	tax_rate: String(organizer.tax_rate),
-	iban: organizer.iban,
-	bic: organizer.bic,
-	billing_street_address: organizer.billing_address.street_address,
-	billing_city: organizer.billing_address.city,
-	billing_zip_code: organizer.billing_address.zip_code,
-	billing_country: organizer.billing_address.country,
-	qonto_client_id: organizer.qonto_client_id ?? "",
-	qonto_beneficiary_id: organizer.qonto_beneficiary_id ?? "",
-	fee_pct_rate: organizer.fee_override?.pct_rate
-		? String(organizer.fee_override.pct_rate)
-		: "",
-	fee_per_ticket: organizer.fee_override?.per_ticket
-		? String(organizer.fee_override.per_ticket)
-		: "",
-	fee_flat: organizer.fee_override?.flat
-		? String(organizer.fee_override.flat)
-		: "",
+	status: organizer.status ?? "ACTIVE",
+	vatNumber: organizer.vatNumber ?? "",
+	taxIdentificationNumber: organizer.taxIdentificationNumber ?? "",
+	taxRate: normalizeTaxRateForForm(organizer.taxRate),
+	sepaBeneficiaryName: organizer.sepaBeneficiaryName ?? "",
+	iban: organizer.iban ?? "",
+	bic: organizer.bic ?? "",
+	billingAddress: {
+		firstName: organizer.billingAddress.firstName,
+		lastName: organizer.billingAddress.lastName,
+		street: organizer.billingAddress.street,
+		city: organizer.billingAddress.city,
+		zipCode: organizer.billingAddress.zipCode,
+		country: organizer.billingAddress.country,
+	},
+	sevdeskCustomerId: organizer.sevdeskCustomerId ?? "",
+	qontoBeneficiaryId: organizer.qontoBeneficiaryId ?? "",
+	feeOverride: {
+		pctRate:
+			organizer.feeOverride?.pctRate !== undefined
+				? String(organizer.feeOverride.pctRate)
+				: "",
+		perTicket:
+			organizer.feeOverride?.perTicket !== undefined
+				? String(organizer.feeOverride.perTicket)
+				: "",
+		flat:
+			organizer.feeOverride?.flat !== undefined
+				? String(organizer.feeOverride.flat)
+				: "",
+	},
 });
-
-export const formValuesToCreateInput = (
-	values: OrganizerFormValues,
-): CreateOrganizerInput => {
-	const taxRate = Number.parseInt(values.tax_rate, 10);
-
-	const feePctRate = toOptionalNumber(values.fee_pct_rate);
-	const feePerTicket = toOptionalNumber(values.fee_per_ticket);
-	const feeFlat = toOptionalNumber(values.fee_flat);
-
-	const hasAnyFeeOverride =
-		feePctRate !== undefined ||
-		feePerTicket !== undefined ||
-		feeFlat !== undefined;
-
-	return {
-		organizerid: values.organizerid.trim(),
-		name: values.name.trim(),
-		first_name: values.first_name.trim(),
-		last_name: values.last_name.trim(),
-		email: values.email.trim(),
-		status: values.status,
-		vat_number: values.vat_number.trim(),
-		tax_identification_number: values.tax_identification_number.trim(),
-		tax_rate: Number.isNaN(taxRate) ? 0 : taxRate,
-		iban: values.iban.trim(),
-		bic: values.bic.trim(),
-		billing_address: {
-			street_address: values.billing_street_address.trim(),
-			city: values.billing_city.trim(),
-			zip_code: values.billing_zip_code.trim(),
-			country: values.billing_country.trim(),
-		},
-		qonto_client_id: toOptional(values.qonto_client_id),
-		qonto_beneficiary_id: toOptional(values.qonto_beneficiary_id),
-		fee_override: hasAnyFeeOverride
-			? {
-					pct_rate: feePctRate ?? 0,
-					per_ticket: Math.round(feePerTicket ?? 0),
-					flat: Math.round(feeFlat ?? 0),
-				}
-			: undefined,
-	};
-};
-
-export const formValuesToUpdateInput = (
-	values: OrganizerFormValues,
-): UpdateOrganizerInput => formValuesToCreateInput(values);
 
 interface FormFieldProps {
 	id: string;
 	label: string;
-	value: string;
-	onChange: (value: string) => void;
+	error?: string;
 	disabled?: boolean;
 	placeholder?: string;
 	type?: React.ComponentProps<typeof Input>["type"];
+	registration: UseFormRegisterReturn;
 }
 
 const FormField = ({
 	id,
 	label,
-	value,
-	onChange,
+	error,
 	disabled,
 	placeholder,
 	type,
+	registration,
 }: Readonly<FormFieldProps>) => (
 	<Field>
 		<FieldLabel htmlFor={id}>{label}</FieldLabel>
 		<Input
 			id={id}
 			type={type}
-			value={value}
 			disabled={disabled}
-			onChange={(event) => onChange(event.target.value)}
 			placeholder={placeholder}
+			{...registration}
 		/>
+		{error && <p className="mt-1 text-red-600 text-xs">{error}</p>}
 	</Field>
 );
 
-const SectionTitle = ({ title }: Readonly<{ title: string }>) => (
-	<h3 className="text-sm">{title}</h3>
-);
-
 export function OrganizerForm({
-	values,
-	onChange,
+	initialValues,
+	onSubmit,
 	disabled = false,
 	hideOrganizerId = false,
+	formId,
 }: Readonly<OrganizerFormProps>) {
-	const setField = <K extends keyof OrganizerFormValues>(
-		key: K,
-		value: OrganizerFormValues[K],
-	) => {
-		onChange({
-			...values,
-			[key]: value,
-		});
-	};
+	const [submitError, setSubmitError] = useState<string | null>(null);
+	const form = useForm<OrganizerFormValues>({
+		resolver: zodResolver(OrganizerFormSchema),
+		defaultValues: initialValues,
+	});
 
+	useEffect(() => {
+		form.reset(initialValues);
+		setSubmitError(null);
+	}, [form, initialValues]);
+
+	const organizerIdValue = form.watch("organizerId");
 	const organizerIdInvalid =
-		values.organizerid.trim().length > 0 &&
-		!values.organizerid.trim().startsWith("org-");
+		organizerIdValue.trim().length > 0 &&
+		!organizerIdValue.trim().startsWith("org-");
+
+	const handleSubmit = form.handleSubmit((values) => {
+		form.clearErrors();
+		setSubmitError(null);
+
+		const transformed = OrganizerFormToCreateInputSchema.safeParse(values);
+		if (!transformed.success) {
+			for (const issue of transformed.error.issues) {
+				form.setError(issue.path.join(".") as FieldPath<OrganizerFormValues>, {
+					type: "manual",
+					message: issue.message,
+				});
+			}
+			setSubmitError("Bitte korrigiere die markierten Felder.");
+			return;
+		}
+
+		const parsed = CreateOrganizerInputSchema.safeParse(transformed.data);
+		if (!parsed.success) {
+			for (const issue of parsed.error.issues) {
+				form.setError(issue.path.join(".") as FieldPath<OrganizerFormValues>, {
+					type: "manual",
+					message: issue.message,
+				});
+			}
+			setSubmitError(
+				parsed.error.issues[0]?.message ??
+					"Bitte korrigiere die markierten Felder.",
+			);
+			return;
+		}
+
+		onSubmit(parsed.data);
+	});
+
+	const errors = form.formState.errors;
+
+	const taxRateOptions = useMemo(
+		() => [
+			{ label: "0%", value: "0" },
+			{ label: "7%", value: "0.07" },
+			{ label: "19%", value: "0.19" },
+		],
+		[],
+	);
 
 	return (
-		<div className="max-h-[65vh] space-y-6 overflow-y-auto pr-1">
-			{!hideOrganizerId && (
-				<Field>
-					<FieldLabel htmlFor="organizerid">Veranstalter ID</FieldLabel>
-					<Input
-						id="organizerid"
-						value={values.organizerid}
-						disabled={disabled}
-						onChange={(event) => setField("organizerid", event.target.value)}
-						placeholder="org-some-organizer"
-					/>
-					{organizerIdInvalid && (
-						<p className="mt-1 text-red-600 text-xs">
-							Veranstalter ID must start with "org-"
-						</p>
-					)}
-				</Field>
-			)}
-
-			<div className="space-y-3">
-				<SectionTitle title="Veranstalter" />
-				<div className="grid gap-4 md:grid-cols-2">
-					<FormField
-						id="organizer-name"
-						label="Name"
-						value={values.name}
-						disabled={disabled}
-						onChange={(value) => setField("name", value)}
-						placeholder="Muster Event GmbH"
-					/>
-					<FormField
-						id="organizer-first-name"
-						label="First name"
-						value={values.first_name}
-						disabled={disabled}
-						onChange={(value) => setField("first_name", value)}
-					/>
-					<FormField
-						id="organizer-last-name"
-						label="Last name"
-						value={values.last_name}
-						disabled={disabled}
-						onChange={(value) => setField("last_name", value)}
-					/>
-					<FormField
-						id="organizer-email"
-						label="Email"
-						type="email"
-						value={values.email}
-						disabled={disabled}
-						onChange={(value) => setField("email", value)}
-					/>
+		<form id={formId} onSubmit={handleSubmit}>
+			<FieldGroup className="max-h-[65vh] space-y-6 overflow-y-auto pr-1">
+				{!hideOrganizerId && (
 					<Field>
-						<FieldLabel htmlFor="organizer-status">Status</FieldLabel>
-						<select
-							id="organizer-status"
-							value={values.status}
+						<FieldLabel htmlFor="organizerId">Veranstalter ID</FieldLabel>
+						<Input
+							id="organizerId"
 							disabled={disabled}
-							onChange={(event) =>
-								setField("status", event.target.value as OrganizerStatus)
-							}
-							className="h-8 w-full rounded-md border border-input bg-background px-3 text-sm"
-						>
-							<option value="ACTIVE">ACTIVE</option>
-							<option value="INACTIVE">INACTIVE</option>
-						</select>
+							placeholder="org-some-organizer"
+							{...form.register("organizerId")}
+						/>
+						{organizerIdInvalid && (
+							<p className="mt-1 text-red-600 text-xs">
+								Veranstalter ID muss mit "org-" beginnen
+							</p>
+						)}
+						{errors.organizerId?.message && (
+							<p className="mt-1 text-red-600 text-xs">
+								{errors.organizerId.message}
+							</p>
+						)}
 					</Field>
-				</div>
-			</div>
+				)}
 
-			<div className="space-y-3">
-				<SectionTitle title="Tax and payout" />
-				<div className="grid gap-4 md:grid-cols-2">
-					<FormField
-						id="organizer-vat-number"
-						label="VAT number"
-						value={values.vat_number}
-						disabled={disabled}
-						onChange={(value) => setField("vat_number", value)}
-					/>
-					<FormField
-						id="organizer-tax-identification-number"
-						label="Tax identification number"
-						value={values.tax_identification_number}
-						disabled={disabled}
-						onChange={(value) => setField("tax_identification_number", value)}
-					/>
-					<FormField
-						id="organizer-tax-rate"
-						label="Tax rate (%)"
-						type="number"
-						value={values.tax_rate}
-						disabled={disabled}
-						onChange={(value) => setField("tax_rate", value)}
-					/>
-					<FormField
-						id="organizer-iban"
-						label="IBAN"
-						value={values.iban}
-						disabled={disabled}
-						onChange={(value) => setField("iban", value)}
-					/>
-					<FormField
-						id="organizer-bic"
-						label="BIC"
-						value={values.bic}
-						disabled={disabled}
-						onChange={(value) => setField("bic", value)}
-					/>
-					<FormField
-						id="organizer-qonto-client-id"
-						label="Qonto client ID"
-						value={values.qonto_client_id}
-						disabled={disabled}
-						onChange={(value) => setField("qonto_client_id", value)}
-					/>
-					<FormField
-						id="organizer-qonto-beneficiary-id"
-						label="Qonto beneficiary ID"
-						value={values.qonto_beneficiary_id}
-						disabled={disabled}
-						onChange={(value) => setField("qonto_beneficiary_id", value)}
-					/>
-				</div>
-			</div>
+				<FieldGroup className="space-y-3">
+					<FieldLegend>Allgemeine Informationen</FieldLegend>
+					<div className="grid gap-4 md:grid-cols-2">
+						<FormField
+							id="organizer-name"
+							label="Name des Veranstalters (optional)"
+							disabled={disabled}
+							placeholder="Kulturverein e.V."
+							registration={form.register("name")}
+							error={errors.name?.message}
+						/>
+						<FormField
+							id="organizer-email"
+							label="Email"
+							type="email"
+							disabled={disabled}
+							registration={form.register("email")}
+							error={errors.email?.message}
+						/>
+					</div>
+				</FieldGroup>
 
-			<div className="space-y-3">
-				<SectionTitle title="Billing address" />
-				<div className="grid gap-4 md:grid-cols-2">
-					<FormField
-						id="organizer-billing-street"
-						label="Street"
-						value={values.billing_street_address}
-						disabled={disabled}
-						onChange={(value) => setField("billing_street_address", value)}
-					/>
-					<FormField
-						id="organizer-billing-city"
-						label="City"
-						value={values.billing_city}
-						disabled={disabled}
-						onChange={(value) => setField("billing_city", value)}
-					/>
-					<FormField
-						id="organizer-billing-zip"
-						label="ZIP code"
-						value={values.billing_zip_code}
-						disabled={disabled}
-						onChange={(value) => setField("billing_zip_code", value)}
-					/>
-					<FormField
-						id="organizer-billing-country"
-						label="Country"
-						value={values.billing_country}
-						disabled={disabled}
-						onChange={(value) => setField("billing_country", value)}
-						placeholder="DE"
-					/>
-				</div>
-			</div>
+				<FieldGroup>
+					<FieldLegend>Ansprechpartner</FieldLegend>
+					<div className="grid gap-4 md:grid-cols-3">
+						<FormField
+							id="contact-first-name"
+							label="Vorname"
+							disabled={disabled}
+							registration={form.register("firstName")}
+							error={errors.firstName?.message}
+						/>
+						<FormField
+							id="contact-last-name"
+							label="Nachname"
+							disabled={disabled}
+							registration={form.register("lastName")}
+							error={errors.lastName?.message}
+						/>
+						<FormField
+							id="contact-email"
+							label="Email"
+							type="email"
+							disabled={disabled}
+							registration={form.register("email")}
+							error={errors.email?.message}
+						/>
+					</div>
+				</FieldGroup>
 
-			<div className="space-y-3">
-				<SectionTitle title="Fee override (optional)" />
-				<div className="grid gap-4 md:grid-cols-3">
-					<FormField
-						id="organizer-fee-pct-rate"
-						label="Percent rate"
-						type="number"
-						value={values.fee_pct_rate}
-						disabled={disabled}
-						onChange={(value) => setField("fee_pct_rate", value)}
-						placeholder="0.1"
-					/>
-					<FormField
-						id="organizer-fee-per-ticket"
-						label="Per ticket (cents)"
-						type="number"
-						value={values.fee_per_ticket}
-						disabled={disabled}
-						onChange={(value) => setField("fee_per_ticket", value)}
-						placeholder="100"
-					/>
-					<FormField
-						id="organizer-fee-flat"
-						label="Flat fee (cents)"
-						type="number"
-						value={values.fee_flat}
-						disabled={disabled}
-						onChange={(value) => setField("fee_flat", value)}
-						placeholder="5000"
-					/>
-				</div>
-			</div>
-		</div>
+				<FieldSeparator />
+				<FieldSeparator />
+
+				<FieldGroup>
+					<FieldLegend>Steuer und Auszahlung</FieldLegend>
+					<div className="grid gap-4 md:grid-cols-2">
+						<FormField
+							id="organizer-vat-number"
+							label="Umsatzsteuer-Id"
+							disabled={disabled}
+							registration={form.register("vatNumber")}
+							error={errors.vatNumber?.message}
+						/>
+						<FormField
+							id="organizer-tax-identification-number"
+							label="Steuernummer"
+							disabled={disabled}
+							registration={form.register("taxIdentificationNumber")}
+							error={errors.taxIdentificationNumber?.message}
+						/>
+						<Field>
+							<FieldLabel htmlFor="organizer-tax-rate">Steuersatz</FieldLabel>
+							<select
+								id="organizer-tax-rate"
+								disabled={disabled}
+								className="block h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
+								{...form.register("taxRate")}
+							>
+								{taxRateOptions.map((option) => (
+									<option key={option.value} value={option.value}>
+										{option.label}
+									</option>
+								))}
+							</select>
+						</Field>
+						<FormField
+							id="organizer-sepa-beneficiary-name"
+							label="SEPA Begünstigter"
+							disabled={disabled}
+							registration={form.register("sepaBeneficiaryName")}
+							error={errors.sepaBeneficiaryName?.message}
+						/>
+						<FormField
+							id="organizer-iban"
+							label="IBAN"
+							disabled={disabled}
+							registration={form.register("iban")}
+							error={errors.iban?.message}
+						/>
+						<FormField
+							id="organizer-bic"
+							label="BIC"
+							disabled={disabled}
+							registration={form.register("bic")}
+							error={errors.bic?.message}
+						/>
+					</div>
+				</FieldGroup>
+
+				<FieldSeparator />
+
+				<FieldGroup>
+					<FieldLegend>Rechnungsanschrift</FieldLegend>
+					<div className="grid gap-4 md:grid-cols-2">
+						<FormField
+							id="organizer-billing-first-name"
+							label="Vorname"
+							disabled={disabled}
+							registration={form.register("billingAddress.firstName")}
+							error={errors.billingAddress?.firstName?.message}
+						/>
+						<FormField
+							id="organizer-billing-last-name"
+							label="Nachname"
+							disabled={disabled}
+							registration={form.register("billingAddress.lastName")}
+							error={errors.billingAddress?.lastName?.message}
+						/>
+						<FormField
+							id="organizer-billing-street"
+							label="Straße und Hausnummer"
+							disabled={disabled}
+							registration={form.register("billingAddress.street")}
+							error={errors.billingAddress?.street?.message}
+						/>
+						<FormField
+							id="organizer-billing-city"
+							label="Stadt"
+							disabled={disabled}
+							registration={form.register("billingAddress.city")}
+							error={errors.billingAddress?.city?.message}
+						/>
+						<FormField
+							id="organizer-billing-zip"
+							label="Postleitzahl"
+							disabled={disabled}
+							registration={form.register("billingAddress.zipCode")}
+							error={errors.billingAddress?.zipCode?.message}
+						/>
+						<FormField
+							id="organizer-billing-country"
+							label="Land"
+							disabled={disabled}
+							placeholder="DE"
+							registration={form.register("billingAddress.country")}
+							error={errors.billingAddress?.country?.message}
+						/>
+					</div>
+				</FieldGroup>
+
+				<FieldSeparator />
+
+				<FieldGroup>
+					<FieldLegend>Sonderkonditionen (optional)</FieldLegend>
+					<div className="grid gap-4 md:grid-cols-3">
+						<FormField
+							id="organizer-fee-pct-rate"
+							label="Percent rate"
+							type="number"
+							disabled={disabled}
+							placeholder="0.1"
+							registration={form.register("feeOverride.pctRate")}
+							error={errors.feeOverride?.pctRate?.message}
+						/>
+						<FormField
+							id="organizer-fee-per-ticket"
+							label="Per ticket (cents)"
+							type="number"
+							disabled={disabled}
+							placeholder="100"
+							registration={form.register("feeOverride.perTicket")}
+							error={errors.feeOverride?.perTicket?.message}
+						/>
+						<FormField
+							id="organizer-fee-flat"
+							label="Flat fee (cents)"
+							type="number"
+							disabled={disabled}
+							placeholder="5000"
+							registration={form.register("feeOverride.flat")}
+							error={errors.feeOverride?.flat?.message}
+						/>
+					</div>
+				</FieldGroup>
+
+				<FieldSeparator />
+
+				<FieldGroup>
+					<FieldLegend>Systemreferenzen (automatisch generiert)</FieldLegend>
+					<div className="grid gap-4 md:grid-cols-3">
+						<FormField
+							id="organizer-qonto-beneficiary-id"
+							label="Qonto beneficiary ID"
+							disabled={disabled}
+							registration={form.register("qontoBeneficiaryId")}
+							error={errors.qontoBeneficiaryId?.message}
+						/>
+						<FormField
+							id="organizer-sevdesk-customer-id"
+							label="sevdesk contact ID"
+							disabled={disabled}
+							registration={form.register("sevdeskCustomerId")}
+							error={errors.sevdeskCustomerId?.message}
+						/>
+					</div>
+				</FieldGroup>
+
+				{submitError && <p className="text-red-600 text-sm">{submitError}</p>}
+			</FieldGroup>
+		</form>
 	);
 }

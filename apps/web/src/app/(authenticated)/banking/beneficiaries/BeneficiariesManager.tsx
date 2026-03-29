@@ -1,5 +1,6 @@
 "use client";
 
+import type { QontoSepaBeneficiary } from "@ticketing-billing/types/qonto/beneficiaries";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
@@ -24,7 +25,6 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
-import type { QontoSepaBeneficiary } from "@/types/qonto/beneficiaries";
 
 interface BeneficiariesManagerProps {
 	beneficiaries: QontoSepaBeneficiary[];

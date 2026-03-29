@@ -1,33 +1,26 @@
 "use server";
 
-import { getAccessToken } from "@/lib/auth";
 import { AppError } from "@/lib/errors";
-import { QontoClient } from "@/lib/qonto/client";
-import type { CreateInvoiceInput } from "@/lib/qonto/services/invoices";
-import { InvoicesService } from "@/lib/qonto/services/invoices";
+import { SevdeskClient } from "@/lib/sevdesk/client";
+import type { CreateInvoiceDraftInput } from "@/lib/sevdesk/services/invoices";
+import { SevdeskInvoicesService } from "@/lib/sevdesk/services/invoices";
 
-/**
- * Create a new client invoice
- */
-export async function createInvoice(input: CreateInvoiceInput) {
-	try {
-		const accessToken = await getAccessToken();
-		const client = new QontoClient({ accessToken });
-		const service = new InvoicesService(client);
+const sevdeskClient = new SevdeskClient();
+const invoicesService = new SevdeskInvoicesService(sevdeskClient);
 
-		const invoice = await service.createInvoice(input);
+export async function createSevdeskInvoiceDraft(input: CreateInvoiceDraftInput) {
+    try {
+        const invoice = await invoicesService.createInvoiceDraft(input);
 
-		return {
-			success: true,
-			data: invoice,
-		};
-	} catch (error) {
-		const message =
-			error instanceof AppError ? error.message : "Failed to create invoice";
+        return { success: true as const, data: invoice };
+    } catch (error) {
+        const message =
+            error instanceof AppError || error instanceof Error
+                ? error.message
+                : "Failed to create invoice draft";
 
-		return {
-			success: false,
-			error: message,
-		};
-	}
+        console.error("createSevdeskInvoiceDraft error:", message);
+
+        return { success: false as const, error: message };
+    }
 }

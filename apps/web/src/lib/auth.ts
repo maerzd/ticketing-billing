@@ -1,9 +1,9 @@
 "use server";
 
+import type { QontoTokenResponse } from "@ticketing-billing/types/qonto/qonto";
 import { cookies } from "next/headers";
 import { UnauthorizedError } from "@/lib/errors";
 import { refreshAccessToken } from "@/lib/qonto/oauth";
-import type { QontoTokenResponse } from "@/types/qonto/qonto";
 
 const ACCESS_TOKEN_COOKIE = "qonto_access_token";
 const REFRESH_TOKEN_COOKIE = "qonto_refresh_token";

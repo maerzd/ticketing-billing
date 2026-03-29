@@ -1,3 +1,5 @@
+import type { RevenueResponse } from "@ticketing-billing/types/vivenu/revenue";
+import type { TicketSales } from "@ticketing-billing/types/vivenu/ticket-sales";
 import { ChartBarStacked } from "@/components/charts/chart-bar-stacked";
 import {
 	Card,
@@ -7,8 +9,6 @@ import {
 } from "@/components/ui/card";
 import type { ChartConfig } from "@/components/ui/chart";
 import { formatCurrency, formatNumber } from "@/lib/utils";
-import type { RevenueResponse } from "@/types/vivenu/revenue";
-import type { TicketSales } from "@/types/vivenu/ticket-sales";
 
 function SectionCard({
 	value,

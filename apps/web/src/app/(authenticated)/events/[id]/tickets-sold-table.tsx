@@ -1,3 +1,8 @@
+import type { VivenuEvent } from "@ticketing-billing/types/vivenu/event";
+import type {
+	TicketSales,
+	TicketSalesResult,
+} from "@ticketing-billing/types/vivenu/ticket-sales";
 import React from "react";
 import { Progress } from "@/components/ui/progress";
 import {
@@ -11,11 +16,6 @@ import {
 	TableRow,
 } from "@/components/ui/table";
 import { formatCurrency } from "@/lib/utils";
-import type { VivenuEvent } from "@/types/vivenu/event";
-import type {
-	TicketSales,
-	TicketSalesResult,
-} from "@/types/vivenu/ticket-sales";
 
 function groupTickets(ticketSales: TicketSales | null) {
 	return ticketSales?.results.reduce(

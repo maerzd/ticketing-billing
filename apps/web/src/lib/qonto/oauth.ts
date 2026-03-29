@@ -1,6 +1,9 @@
+import type {
+	QontoOAuthError,
+	QontoTokenResponse,
+} from "@ticketing-billing/types/qonto/qonto";
 import env from "@/env";
 import { OAuthError } from "@/lib/errors";
-import type { QontoOAuthError, QontoTokenResponse } from "@/types/qonto/qonto";
 import { getBaseUrl } from "../utils";
 
 const SANDBOX_AUTH_URL = "https://oauth-sandbox.staging.qonto.co/oauth2/auth";
@@ -27,6 +30,7 @@ const getOAuthHeaders = (): Record<string, string> => {
 
 const SCOPES = [
 	"organization.read",
+	"payment.write",
 	"offline_access",
 	"attachment.read",
 	"attachment.write",

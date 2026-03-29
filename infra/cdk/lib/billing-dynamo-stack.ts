@@ -12,9 +12,8 @@ export class BillingDynamoStack extends cdk.Stack {
 		super(scope, id, props);
 
 		const organizersTable = new Table(this, "OrganizersTable", {
-			tableName: "Organizers",
 			partitionKey: {
-				name: "organizerid",
+				name: "organizerId",
 				type: AttributeType.STRING,
 			},
 			billingMode: BillingMode.PAY_PER_REQUEST,
@@ -26,9 +25,8 @@ export class BillingDynamoStack extends cdk.Stack {
 		});
 
 		const billingRecordsTable = new Table(this, "BillingRecordsTable", {
-			tableName: "BillingRecords",
 			partitionKey: {
-				name: "organizerid",
+				name: "organizerId",
 				type: AttributeType.STRING,
 			},
 			sortKey: {

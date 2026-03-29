@@ -1,11 +1,10 @@
-import { z } from "zod";
-import type { QontoClient } from "@/lib/qonto/client";
 import {
 	QontoExternalTransferSchema,
 	QontoVerifyPayeeResponseSchema,
-} from "@/types/qonto/qonto";
-
-import { QontoListSepaTransfersSchema } from "@/types/qonto/sepa-transfers";
+} from "@ticketing-billing/types/qonto/qonto";
+import { QontoListSepaTransfersSchema } from "@ticketing-billing/types/qonto/sepa-transfers";
+import { z } from "zod";
+import type { QontoClient } from "@/lib/qonto/client";
 
 const CreateTransferSchema = z.object({
 	beneficiary_id: z.string().min(1),

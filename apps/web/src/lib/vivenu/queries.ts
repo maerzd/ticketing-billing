@@ -1,3 +1,4 @@
+import type { Me } from "@ticketing-billing/types/vivenu/me";
 import { getVivenuHubbleToken } from "@/lib/vivenu/auth";
 import { VivenuClient } from "@/lib/vivenu/client";
 import { VivenuAnalyticsService } from "@/lib/vivenu/services/analytics";
@@ -25,7 +26,6 @@ import type {
 	UsersResponse,
 	VivenuEvent,
 } from "@/lib/vivenu/types";
-import type { Me } from "@/types/vivenu/me";
 
 const createHubbleServices = async () => {
 	const token = await getVivenuHubbleToken();

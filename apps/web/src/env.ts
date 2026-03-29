@@ -21,6 +21,19 @@ const envSchema = z
 		// Server-side only (never expose to client)
 		QONTO_CLIENT_SECRET: z.string().min(1),
 		QONTO_STAGING_TOKEN: z.string().optional(),
+
+		SEVDESK_API_URL: z.string().url().default("https://my.sevdesk.de/api/v1"),
+		SEVDESK_API_TOKEN: z.string().min(1),
+		SEVDESK_CONTACT_CATEGORY_ID: z.coerce.number().int().positive().default(3),
+		SEVDESK_CONTACT_ADDRESS_CATEGORY_ID: z.coerce
+			.number()
+			.int()
+			.positive()
+			.default(43),
+		SEVDESK_COUNTRY_ID: z.coerce.number().int().positive().default(1),
+		SEVDESK_TAX_RULE_ID: z.coerce.number().int().positive().default(1),
+		SEVDESK_CONTACT_PERSON_ID: z.coerce.number().int().positive().default(1469956),
+		SEVDESK_INVOICE_UNIT_ID: z.coerce.number().int().positive().default(1),
 	})
 	.superRefine((value, context) => {
 		if (value.QONTO_SANDBOX && !value.QONTO_STAGING_TOKEN) {
@@ -47,6 +60,16 @@ const env = envSchema.parse({
 	QONTO_REGISTRATION_ID: process.env.QONTO_REGISTRATION_ID,
 	QONTO_STAGING_TOKEN: process.env.QONTO_STAGING_TOKEN,
 	QONTO_SANDBOX: process.env.QONTO_SANDBOX,
+
+	SEVDESK_API_URL: process.env.SEVDESK_API_URL,
+	SEVDESK_API_TOKEN: process.env.SEVDESK_API_TOKEN,
+	SEVDESK_CONTACT_CATEGORY_ID: process.env.SEVDESK_CONTACT_CATEGORY_ID,
+	SEVDESK_CONTACT_ADDRESS_CATEGORY_ID:
+		process.env.SEVDESK_CONTACT_ADDRESS_CATEGORY_ID,
+	SEVDESK_COUNTRY_ID: process.env.SEVDESK_COUNTRY_ID,
+	SEVDESK_TAX_RULE_ID: process.env.SEVDESK_TAX_RULE_ID,
+	SEVDESK_CONTACT_PERSON_ID: process.env.SEVDESK_CONTACT_PERSON_ID,
+	SEVDESK_INVOICE_UNIT_ID: process.env.SEVDESK_INVOICE_UNIT_ID,
 });
 
 export default env;

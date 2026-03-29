@@ -1,5 +1,6 @@
 "use client";
 
+import type { OrganizerRecord } from "@ticketing-billing/types/ddb";
 import { useMemo, useState } from "react";
 import { OrganizerCreateDialog } from "@/components/forms/OrganizerCreateDialog";
 import { OrganizerDetailDialog } from "@/components/forms/OrganizerDetailDialog";
@@ -18,7 +19,6 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
-import type { OrganizerRecord } from "@/types/organizers";
 
 interface OrganizersManagerProps {
 	organizers: OrganizerRecord[];
@@ -43,7 +43,7 @@ export function OrganizersManager({
 	const selectedOrganizer = useMemo(
 		() =>
 			organizers.find(
-				(organizer) => organizer.organizerid === selectedOrganizerId,
+				(organizer) => organizer.organizerId === selectedOrganizerId,
 			) ?? null,
 		[organizers, selectedOrganizerId],
 	);
@@ -82,23 +82,23 @@ export function OrganizersManager({
 							<TableBody>
 								{organizers.map((organizer) => (
 									<TableRow
-										key={organizer.organizerid}
+										key={organizer.organizerId}
 										onClick={() =>
-											setSelectedOrganizerId(organizer.organizerid)
+											setSelectedOrganizerId(organizer.organizerId)
 										}
 										className="cursor-pointer transition-colors hover:bg-muted/50"
 									>
 										<TableCell className="font-medium">
-											{organizer.organizerid}
+											{organizer.organizerId}
 										</TableCell>
 										<TableCell>{organizer.name}</TableCell>
 										<TableCell>
-											{organizer.first_name} {organizer.last_name}
+											{organizer.firstName} {organizer.lastName}
 										</TableCell>
 										<TableCell>{organizer.email}</TableCell>
 										<TableCell>{organizer.status}</TableCell>
 										<TableCell>
-											{formatUpdatedAt(organizer.updated_at)}
+											{formatUpdatedAt(organizer.updatedAt)}
 										</TableCell>
 									</TableRow>
 								))}
@@ -117,7 +117,7 @@ export function OrganizersManager({
 				}}
 				organizer={selectedOrganizer}
 				onSaved={(updatedOrganizer) => {
-					setSelectedOrganizerId(updatedOrganizer.organizerid);
+					setSelectedOrganizerId(updatedOrganizer.organizerId);
 				}}
 			/>
 		</>

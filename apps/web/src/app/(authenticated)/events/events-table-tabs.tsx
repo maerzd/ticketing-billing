@@ -1,5 +1,6 @@
 "use client";
 
+import type { TicketSalesResult } from "@ticketing-billing/types/vivenu/ticket-sales";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { ClickableTableRow } from "@/components/my-ui/clickable-table-row";
 import { StatusLed } from "@/components/my-ui/status-led";
@@ -13,7 +14,6 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LocalDateTime } from "@/lib/date-time";
-import type { TicketSalesResult } from "@/types/vivenu/ticket-sales";
 
 interface EventsTableTabsProps {
 	pastEvents: TicketSalesResult[];

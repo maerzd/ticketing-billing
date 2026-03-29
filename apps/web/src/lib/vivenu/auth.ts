@@ -12,11 +12,17 @@ import type { VivenuLoginResponse } from "./types";
 // Default token expiry: 24 hours if not provided by API
 const DEFAULT_TOKEN_EXPIRY = 24 * 60 * 60; // 24 hours in seconds
 
-// Module-level cache — Vivenu is a shared service credential, not per-user.
-// This works in any server context (Server Components, Route Handlers, Server Actions).
-// On serverless cold starts the cache is empty and a fresh login is performed transparently.
-// Could be improved by using a more robust caching strategy (e.g. Redis) if needed in the future.
-let tokenCache: { jwt: string; expiresAt: number } | null = null;
+// Anchor the cache on globalThis so it survives HMR module reloads in development.
+// In production (serverless) this is per-function-instance — still avoids redundant
+// logins within a warm instance and deduplicates concurrent in-flight requests.
+declare global {
+	// eslint-disable-next-line no-var
+	var __vivenuTokenCache: { jwt: string; expiresAt: number } | null;
+	// eslint-disable-next-line no-var
+	var __vivenuInflightLogin: Promise<string> | null;
+}
+if (!("__vivenuTokenCache" in globalThis)) globalThis.__vivenuTokenCache = null;
+if (!("__vivenuInflightLogin" in globalThis)) globalThis.__vivenuInflightLogin = null;
 
 async function generateVivenuOtp(
 	otpSecret?: string,
@@ -97,27 +103,40 @@ export async function getVivenuHubbleToken(): Promise<string> {
 
 	const fiveMinutes = 5 * 60 * 1000;
 
-	if (tokenCache && tokenCache.expiresAt - Date.now() > fiveMinutes) {
-		return tokenCache.jwt;
+	if (globalThis.__vivenuTokenCache && globalThis.__vivenuTokenCache.expiresAt - Date.now() > fiveMinutes) {
+		return globalThis.__vivenuTokenCache.jwt;
 	}
 
-	// Cache is empty or token is about to expire — re-login
-	const generatedOtp = await generateVivenuOtp(VIVENU_OTP_SECRET);
+	// Deduplicate concurrent login attempts — if a login is already in-flight,
+	// wait for it instead of firing a second request (thundering herd / HMR burst).
+	if (globalThis.__vivenuInflightLogin) {
+		return globalThis.__vivenuInflightLogin;
+	}
 
-	const loginResponse = await loginToVivenu(
-		VIVENU_EMAIL,
-		VIVENU_PASSWORD,
-		generatedOtp,
-		VIVENU_LOGIN_TWO_FACTOR_METHOD || "totp",
-	);
+	globalThis.__vivenuInflightLogin = (async () => {
+		try {
+			const generatedOtp = await generateVivenuOtp(VIVENU_OTP_SECRET);
 
-	const expiresIn = loginResponse.expiresIn ?? DEFAULT_TOKEN_EXPIRY;
-	tokenCache = {
-		jwt: loginResponse.jwt,
-		expiresAt: Date.now() + expiresIn * 1000,
-	};
+			const loginResponse = await loginToVivenu(
+				VIVENU_EMAIL,
+				VIVENU_PASSWORD,
+				generatedOtp,
+				VIVENU_LOGIN_TWO_FACTOR_METHOD || "totp",
+			);
 
-	return tokenCache.jwt;
+			const expiresIn = loginResponse.expiresIn ?? DEFAULT_TOKEN_EXPIRY;
+			globalThis.__vivenuTokenCache = {
+				jwt: loginResponse.jwt,
+				expiresAt: Date.now() + expiresIn * 1000,
+			};
+
+			return globalThis.__vivenuTokenCache.jwt;
+		} finally {
+			globalThis.__vivenuInflightLogin = null;
+		}
+	})();
+
+	return globalThis.__vivenuInflightLogin;
 }
 
 /**
@@ -125,12 +144,12 @@ export async function getVivenuHubbleToken(): Promise<string> {
  */
 export function isVivenuAuthenticated(): boolean {
 	const fiveMinutes = 5 * 60 * 1000;
-	return tokenCache !== null && tokenCache.expiresAt - Date.now() > fiveMinutes;
+	return globalThis.__vivenuTokenCache !== null && globalThis.__vivenuTokenCache.expiresAt - Date.now() > fiveMinutes;
 }
 
 /**
  * Clear the in-memory token cache (e.g. after a credential change)
  */
 export function clearVivenuTokens(): void {
-	tokenCache = null;
+	globalThis.__vivenuTokenCache = null;
 }

@@ -1,10 +1,11 @@
 "use client";
-
+import type { OrganizerRecord } from "@ticketing-billing/types/ddb";
 import { Copy } from "lucide-react";
-import { useRouter } from "next/navigation";
-import { useRef, useState } from "react";
+import Link from "next/link";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { createInvoice } from "@/actions/invoices";
+import { createSevdeskInvoiceDraft } from "@/actions/invoices";
+import { getOrganizer } from "@/actions/organizers";
 import { Button } from "@/components/ui/button";
 import {
 	Table,
@@ -21,15 +22,15 @@ import {
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { SALES_TAX_RATE, TICKET_COMMISSION_RATE } from "@/lib/constants";
+import type { CreateInvoiceDraftInput } from "@/lib/sevdesk/services/invoices";
 import { formatCurrency } from "@/lib/utils";
-import type { Client } from "@/types/qonto/clients";
 
 interface InvoiceData {
 	items: {
 		label: string;
-		netValue: string;
-		tax: string;
-		value: string;
+		netValue: number;
+		tax: number;
+		value: number;
 	}[];
 	totalRevenue: number;
 	revenueOrganizer: number;
@@ -58,9 +59,15 @@ function InvoiceTable({ invoiceData }: { invoiceData: InvoiceData }) {
 				{invoiceData.items?.map((row) => (
 					<TableRow key={row.label}>
 						<TableCell>{row.label}</TableCell>
-						<TableCell className="text-right">{row.netValue}</TableCell>
-						<TableCell className="text-right">{row.tax}</TableCell>
-						<TableCell className="text-right">{row.value}</TableCell>
+						<TableCell className="text-right">
+							{formatCurrency(row.netValue)}
+						</TableCell>
+						<TableCell className="text-right">
+							{(row.tax * 100).toFixed(0)} %
+						</TableCell>
+						<TableCell className="text-right">
+							{formatCurrency(row.value)}
+						</TableCell>
 					</TableRow>
 				))}
 			</TableBody>
@@ -94,8 +101,8 @@ export default function Invoice({
 	eventTaxRate = 0,
 	setupFee = 25,
 	ticketCommissionRate = TICKET_COMMISSION_RATE,
-	clients = [],
 	eventStartDate,
+	organizerId,
 }: {
 	totalRevenue: number;
 	ticketsCount: number;
@@ -104,10 +111,9 @@ export default function Invoice({
 	ticketCommissionRate?: number;
 	officialPos?: Set<string>;
 	revenuePerPos?: Record<string, number>;
-	clients?: Client[];
 	eventStartDate?: string;
+	organizerId?: string;
 }): React.ReactNode {
-	const router = useRouter();
 	// Systemgebühr: 1€ pro verkauftem Ticket
 	const systemFee = ticketsCount * 1;
 	const systemFeeWithTax = systemFee * (1 + SALES_TAX_RATE);
@@ -140,21 +146,21 @@ export default function Invoice({
 		items: [
 			{
 				label: "Systemgebühr",
-				netValue: formatCurrency(systemFee),
-				value: formatCurrency(systemFeeWithTax),
-				tax: `${(SALES_TAX_RATE * 100).toFixed(0)}%`,
+				netValue: systemFee,
+				value: systemFeeWithTax,
+				tax: SALES_TAX_RATE,
 			},
 			{
 				label: "Vorverkaufsgebühr",
-				netValue: formatCurrency(variableFee),
-				value: formatCurrency(variableFeeWithTax),
-				tax: `${(Number(eventTaxRate) * 100).toFixed(0)}%`,
+				netValue: variableFee,
+				value: variableFeeWithTax,
+				tax: eventTaxRate,
 			},
 			{
 				label: "Einrichtungsgebühr",
-				netValue: formatCurrency(setupFee),
-				value: formatCurrency(setupFeeWithTax),
-				tax: `${(SALES_TAX_RATE * 100).toFixed(0)}%`,
+				netValue: setupFee,
+				value: setupFeeWithTax,
+				tax: SALES_TAX_RATE,
 			},
 		],
 		payoutItems: [
@@ -206,64 +212,58 @@ export default function Invoice({
 	const [showTooltip, setShowTooltip] = useState(false);
 	const [selectedClientId, setSelectedClientId] = useState("");
 	const [isCreating, setIsCreating] = useState(false);
+	const [organizer, setOrganizer] = useState<
+		OrganizerRecord | null | undefined
+	>(organizerId ? undefined : null);
 
-	const formatIsoDate = (date: Date) => date.toISOString().split("T")[0];
-
+	useEffect(() => {
+		if (!organizerId) {
+			setOrganizer(null);
+			return;
+		}
+		let cancelled = false;
+		setOrganizer(undefined);
+		getOrganizer(organizerId).then((result) => {
+			if (cancelled) return;
+			if (result.success) {
+				setOrganizer(result.data);
+				setSelectedClientId(result.data.sevdeskCustomerId ?? "");
+			} else {
+				setOrganizer(null);
+			}
+		});
+		return () => {
+			cancelled = true;
+		};
+	}, [organizerId]);
 	const handleCreateDraft = async () => {
 		if (!selectedClientId) return;
 
 		setIsCreating(true);
 		try {
 			const today = new Date();
-			const dueDate = new Date(today);
-			dueDate.setDate(dueDate.getDate() + 14);
+			const input: CreateInvoiceDraftInput = {
+				organizerContactId: Number(selectedClientId), // sevdesk contact ID
+				invoiceDate: today.toISOString().split("T")[0],
+				timeToPay: 14,
+				items: invoiceData.items.map((item) => ({
+					label: item.label,
+					quantity: 1,
+					priceGross: item.value,
+					taxRate: item.tax,
+				})),
+			};
 
-			const result = await createInvoice({
-				client_id: selectedClientId,
-				payment_methods: { iban: "DE80100101236302300273" }, // Dummy IBAN, da für Drafts in Qonto keine Zahlung hinterlegt werden muss
-				issue_date: formatIsoDate(today),
-				due_date: formatIsoDate(dueDate),
-				performance_start_date: eventStartDate?.split("T")[0],
-				status: "draft",
-				currency: "EUR",
-				items: [
-					{
-						title: "Systemgebühr",
-						quantity: "1",
-						unit_price: {
-							value: systemFee.toFixed(2),
-							currency: "EUR",
-						},
-						vat_rate: SALES_TAX_RATE.toString(),
-					},
-					{
-						title: "Vorverkaufsgebühr",
-						quantity: "1",
-						unit_price: {
-							value: variableFee.toFixed(2),
-							currency: "EUR",
-						},
-						vat_rate: Number(eventTaxRate).toString(),
-					},
-					{
-						title: "Einrichtungsgebühr",
-						quantity: "1",
-						unit_price: {
-							value: setupFee.toFixed(2),
-							currency: "EUR",
-						},
-						vat_rate: SALES_TAX_RATE.toString(),
-					},
-				],
-			});
+			const result = await createSevdeskInvoiceDraft(input);
 
 			if (!result.success) {
-				toast.error(result.error ?? "Rechnung konnte nicht erstellt werden");
+				toast.error(result.error);
 				return;
 			}
 
-			toast.success("Rechnungsentwurf in Qonto erstellt");
-			router.push("/banking/invoices");
+			toast.success(
+				`Rechnungsentwurf erstellt: ${result.data.invoiceNumber ?? result.data.id}`,
+			);
 		} catch (error) {
 			toast.error("Ein unerwarteter Fehler ist aufgetreten");
 			console.error(error);
@@ -291,32 +291,26 @@ export default function Invoice({
 	return (
 		<>
 			<div className="my-4 space-y-3 rounded-xl bg-muted/50 p-4 ring-1 ring-muted">
-				<h3 className="font-semibold">Entwurf in Qonto erstellen</h3>
-				{clients.length === 0 ? (
+				<h3 className="font-semibold">Entwurf in Sevdesk erstellen</h3>
+				{organizer === undefined ? (
+					<p className="text-muted-foreground text-sm">Lade Veranstalter…</p>
+				) : organizer === null ? (
 					<p className="text-muted-foreground text-sm">
-						Keine Qonto-Kunden verfugbar.
+						Kein Veranstalter gefunden.{" "}
+						<Link href="/organizers" className="underline">
+							Veranstalter anlegen
+						</Link>
 					</p>
 				) : (
 					<div className="flex flex-col gap-3 sm:flex-row sm:items-end">
 						<div className="w-full sm:max-w-sm">
-							<label htmlFor="qonto-client" className="mb-1 block text-sm">
-								Kunde
-							</label>
-							<select
-								id="qonto-client"
-								value={selectedClientId}
-								onChange={(event) => setSelectedClientId(event.target.value)}
-								disabled={isCreating}
-								className="block w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-base text-slate-900 focus:border-slate-950 focus:outline-none focus:ring-1 focus:ring-slate-950 disabled:cursor-not-allowed disabled:opacity-50"
-							>
-								<option value="">Bitte Kunde auswahlen</option>
-								{clients.map((client) => (
-									<option key={client.id} value={client.id}>
-										{client.name ||
-											`${client.first_name ?? ""} ${client.last_name ?? ""}`.trim()}
-									</option>
-								))}
-							</select>
+							<p className="text-sm font-medium">
+								{organizer.name ??
+									[organizer.firstName, organizer.lastName]
+										.filter(Boolean)
+										.join(" ")}
+							</p>
+							<p className="text-muted-foreground text-sm">{organizer.email}</p>
 						</div>
 						<Button
 							onClick={handleCreateDraft}
@@ -376,7 +370,7 @@ function InvoiceTextTable({ invoiceData }: { invoiceData: InvoiceData }) {
 						>
 							Beschreibung
 						</th>
-						<th style={{ textAlign: "left", padding: "4px 0" }}>Betrag</th>
+						<th style={{ textAlign: "right", padding: "4px 0" }}>Betrag</th>
 					</tr>
 					<tr>
 						<td colSpan={2} style={{ borderBottom: "1px solid #d3d3d3" }} />

@@ -1,5 +1,5 @@
+import { QontoOrganizationResponseSchema } from "@ticketing-billing/types/qonto/organization";
 import type { QontoClient } from "@/lib/qonto/client";
-import { QontoOrganizationResponseSchema } from "@/types/qonto/organization";
 
 export class OrganizationService {
 	constructor(private readonly client: QontoClient) {}

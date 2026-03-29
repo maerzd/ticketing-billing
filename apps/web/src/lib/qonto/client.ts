@@ -1,8 +1,8 @@
+import type { QontoAPIError } from "@ticketing-billing/types/qonto/qonto";
 import type { z } from "zod";
 import { ZodError } from "zod";
 import env from "@/env";
 import { AppError, QontoAPIErrorHandler, ValidationError } from "@/lib/errors";
-import type { QontoAPIError } from "@/types/qonto/qonto";
 
 const SANDBOX_API_BASE = "https://thirdparty-sandbox.staging.qonto.co/v2";
 const PRODUCTION_API_BASE = "https://thirdparty.qonto.com/v2";

@@ -2,8 +2,6 @@ import { getAccessToken } from "@/lib/auth";
 import { AppError } from "@/lib/errors";
 import { QontoClient } from "@/lib/qonto/client";
 import { BeneficiariesService } from "@/lib/qonto/services/beneficiaries";
-import { ClientsService } from "@/lib/qonto/services/clients";
-import { InvoicesService } from "@/lib/qonto/services/invoices";
 import { OrganizationService } from "@/lib/qonto/services/organization";
 import { TransfersService } from "@/lib/qonto/services/transfers";
 
@@ -35,30 +33,6 @@ export async function queryOrganization() {
 		const message = extractErrorMessage(error, "Failed to fetch organization");
 
 		console.error("Query organization error:", message);
-
-		return {
-			success: false,
-			error: message,
-		} as const;
-	}
-}
-
-export async function queryInvoices(page: number = 1) {
-	try {
-		const accessToken = await getAccessToken();
-		const client = new QontoClient({ accessToken });
-		const service = new InvoicesService(client);
-
-		const result = await service.listInvoices(page);
-
-		return {
-			success: true,
-			data: result,
-		} as const;
-	} catch (error) {
-		const message = extractErrorMessage(error, "Failed to fetch invoices");
-
-		console.error("Query invoices error:", message);
 
 		return {
 			success: false,
@@ -107,54 +81,6 @@ export async function queryBeneficiaries(page: number = 1) {
 		const message = extractErrorMessage(error, "Failed to fetch beneficiaries");
 
 		console.error("Query beneficiaries error:", message);
-
-		return {
-			success: false,
-			error: message,
-		} as const;
-	}
-}
-
-export async function queryClients(page: number = 1) {
-	try {
-		const accessToken = await getAccessToken();
-		const client = new QontoClient({ accessToken });
-		const service = new ClientsService(client);
-
-		const result = await service.listClients({ page });
-
-		return {
-			success: true,
-			data: result,
-		} as const;
-	} catch (error) {
-		const message = extractErrorMessage(error, "Failed to fetch clients");
-
-		console.error("Query clients error:", message);
-
-		return {
-			success: false,
-			error: message,
-		} as const;
-	}
-}
-
-export async function queryClient(id: string) {
-	try {
-		const accessToken = await getAccessToken();
-		const client = new QontoClient({ accessToken });
-		const service = new ClientsService(client);
-
-		const result = await service.retrieveClient(id);
-
-		return {
-			success: true,
-			data: result,
-		} as const;
-	} catch (error) {
-		const message = extractErrorMessage(error, "Failed to fetch client");
-
-		console.error("Query client error:", message);
 
 		return {
 			success: false,

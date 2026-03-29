@@ -3,5 +3,10 @@
 	"files": {
 		"ignoreUnknown": false,
 		"includes": ["**", "!src/components/ui", "!src/components/charts"]
+	},
+	"css": {
+		"parser": {
+			"tailwindDirectives": true
+		}
 	}
 }
