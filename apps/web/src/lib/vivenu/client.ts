@@ -102,6 +102,10 @@ export class VivenuClient {
 		return this.request<T>("api", "POST", endpoint, body);
 	}
 
+	async apiPut<T>(endpoint: string, body?: unknown): Promise<T> {
+		return this.request<T>("api", "PUT", endpoint, body);
+	}
+
 	async hubblePost<T>(endpoint: string, body?: unknown): Promise<T> {
 		return this.request<T>("hubble", "POST", endpoint, body);
 	}

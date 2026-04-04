@@ -3,48 +3,87 @@
 	"ui": "tui",
 	"tasks": {
 		"build": {
-			"dependsOn": ["^build"],
+			"dependsOn": [
+				"^build"
+			],
 			"env": [
-				"NEXT_PUBLIC_VIVENU_API_URL",
+				"AWS_ACCESS_KEY_ID",
+				"AWS_REGION",
+				"AWS_SECRET_ACCESS_KEY",
+				"DYNAMODB_BILLING_RECORDS_TABLE",
+				"DYNAMODB_ORGANIZERS_TABLE",
+				"ENABLE_EXPERIMENTAL_COREPACK",
 				"GOOGLE_MAPS_API_KEY",
-				"NOTION_API_KEY",
-				"VIVENU_API_KEY",
-				"RESEND_API_KEY",
-				"RESEND_SEND_FROM_EMAIL",
-				"RESEND_NEWSLETTER_TOPIC_ID",
-				"SECRET_PASSPHRASE",
-				"VIVENU_WEBHOOK_SECRET",
+				"NEXT_PUBLIC_VIVENU_API_URL",
+				"NEXT_PUBLIC_VIVENU_HUBBLE_URL",
 				"NEXT_PUBLIC_VIVENU_SELLER_ID",
 				"NEXT_PUBLIC_VIVENU_SHOP_URL",
-				"ENABLE_EXPERIMENTAL_COREPACK"
+				"NOTION_API_KEY",
+				"QONTO_CLIENT_ID",
+				"QONTO_CLIENT_SECRET",
+				"QONTO_ORGANIZATION_ID",
+				"RESEND_API_KEY",
+				"RESEND_NEWSLETTER_TOPIC_ID",
+				"RESEND_SEND_FROM_EMAIL",
+				"SECRET_PASSPHRASE",
+				"SEVDESK_API_TOKEN",
+				"SEVDESK_API_URL",
+				"VIVENU_API_KEY",
+				"VIVENU_EMAIL",
+				"VIVENU_OTP_SECRET",
+				"VIVENU_PASSWORD",
+				"VIVENU_WEBHOOK_SECRET",
+				"WORKOS_API_KEY",
+				"WORKOS_CLIENT_ID",
+				"WORKOS_COOKIE_PASSWORD"
 			],
-			"inputs": ["$TURBO_DEFAULT$", ".env*"],
-			"outputs": [".next/**", "!.next/cache/**"]
+			"inputs": [
+				"$TURBO_DEFAULT$",
+				".env*"
+			],
+			"outputs": [
+				".next/**",
+				"!.next/cache/**"
+			]
 		},
 		"start": {
-			"dependsOn": ["^start"]
+			"dependsOn": [
+				"^start"
+			]
 		},
 		"clean": {
-			"dependsOn": ["^clean"]
+			"dependsOn": [
+				"^clean"
+			]
 		},
 		"format": {
-			"dependsOn": ["^format"]
+			"dependsOn": [
+				"^format"
+			]
 		},
 		"lint": {
-			"dependsOn": ["^lint"]
+			"dependsOn": [
+				"^lint"
+			]
 		},
 		"check-types": {
-			"dependsOn": ["^check-types"]
+			"dependsOn": [
+				"^check-types"
+			]
 		},
 		"dev": {
 			"cache": false,
 			"persistent": true
 		},
 		"test": {
-			"dependsOn": ["^test"]
+			"dependsOn": [
+				"^test"
+			]
 		},
 		"emails": {
-			"dependsOn": ["^emails"]
+			"dependsOn": [
+				"^emails"
+			]
 		}
 	}
 }

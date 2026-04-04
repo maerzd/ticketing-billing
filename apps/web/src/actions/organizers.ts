@@ -15,6 +15,9 @@ import { QontoClient } from "@/lib/qonto/client";
 import { BeneficiariesService } from "@/lib/qonto/services/beneficiaries";
 import { SevdeskClient } from "@/lib/sevdesk/client";
 import { SevdeskContactsService } from "@/lib/sevdesk/services/contacts";
+import { getVivenuHubbleToken } from "@/lib/vivenu/auth";
+import { VivenuClient } from "@/lib/vivenu/client";
+import { VivenuAttributesService } from "@/lib/vivenu/services/attributes";
 
 const revalidateOrganizers = () => {
 	revalidatePath("/organizers");
@@ -82,7 +85,10 @@ const enrichCreatePersistenceError = (
 const enrichExternalCreationError = (
 	error: unknown,
 	context: {
-		failedStep: "Qonto beneficiary" | "Sevdesk contact";
+		failedStep:
+			| "Qonto beneficiary"
+			| "Sevdesk contact"
+			| "Vivenu organizer attribute";
 		beneficiaryId?: string;
 		sevdeskContactId?: string;
 	},
@@ -135,6 +141,9 @@ export async function createOrganizer(input: CreateOrganizerInput) {
 		const beneficiariesService = new BeneficiariesService(qontoClient);
 		const sevdeskClient = new SevdeskClient();
 		const sevdeskContactsService = new SevdeskContactsService(sevdeskClient);
+		const vivenuToken = await getVivenuHubbleToken();
+		const vivenuClient = new VivenuClient({ accessToken: vivenuToken });
+		const vivenuAttributesService = new VivenuAttributesService(vivenuClient);
 
 		const hasAnySepaField =
 			parsed.sepaBeneficiaryName || parsed.iban || parsed.bic;
@@ -202,6 +211,16 @@ export async function createOrganizer(input: CreateOrganizerInput) {
 				}),
 			);
 
+		await vivenuAttributesService
+			.ensureOrganizerAttributeOption(parsed.organizerId)
+			.catch((error) =>
+				enrichExternalCreationError(error, {
+					failedStep: "Vivenu organizer attribute",
+					beneficiaryId: beneficiary?.id,
+					sevdeskContactId: sevdeskContact?.contactId,
+				}),
+			);
+
 		revalidateOrganizers();
 
 		return {
@@ -233,6 +252,9 @@ export async function updateOrganizer(input: UpdateOrganizerInput) {
 		const beneficiariesService = new BeneficiariesService(qontoClient);
 		const sevdeskClient = new SevdeskClient();
 		const sevdeskContactsService = new SevdeskContactsService(sevdeskClient);
+		const vivenuToken = await getVivenuHubbleToken();
+		const vivenuClient = new VivenuClient({ accessToken: vivenuToken });
+		const vivenuAttributesService = new VivenuAttributesService(vivenuClient);
 
 		// Qonto: IBAN/BIC are immutable. Update name/email if beneficiary exists, else create.
 		let qontoBeneficiaryId =
@@ -313,6 +335,19 @@ export async function updateOrganizer(input: UpdateOrganizerInput) {
 						failedStep: "Sevdesk contact",
 					}),
 				);
+
+		await vivenuAttributesService
+			.ensureOrganizerAttributeOption(input.organizerId)
+			.catch((error) =>
+				enrichExternalCreationError(error, {
+					failedStep: "Vivenu organizer attribute",
+					beneficiaryId:
+						!existing.qontoBeneficiaryId && qontoBeneficiaryId
+							? qontoBeneficiaryId
+							: undefined,
+					sevdeskContactId: sevdeskContact.contactId,
+				}),
+			);
 
 		const sanitizedInput = Object.fromEntries(
 			Object.entries(input).filter(([, value]) => value !== undefined),
