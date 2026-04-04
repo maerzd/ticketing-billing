@@ -1,61 +1,61 @@
 {
-    "name": "@ticketing-billing/types",
-    "version": "0.1.0",
-    "private": true,
-    "description": "Shared types for ticketing-billing monorepo",
-    "main": "./dist/index.js",
-    "types": "./dist/index.d.ts",
-    "exports": {
-        ".": {
-            "import": "./dist/index.js",
-            "require": "./dist/index.js",
-            "types": "./dist/index.d.ts"
-        },
-        "./ddb": {
-            "import": "./dist/ddb/index.js",
-            "require": "./dist/ddb/index.js",
-            "types": "./dist/ddb/index.d.ts"
-        },
-        "./qonto": {
-            "import": "./dist/qonto/index.js",
-            "require": "./dist/qonto/index.js",
-            "types": "./dist/qonto/index.d.ts"
-        },
-        "./qonto/*": {
-            "import": "./dist/qonto/*.js",
-            "require": "./dist/qonto/*.js",
-            "types": "./dist/qonto/*.d.ts"
-        },
-        "./vivenu": {
-            "import": "./dist/vivenu/index.js",
-            "require": "./dist/vivenu/index.js",
-            "types": "./dist/vivenu/index.d.ts"
-        },
-        "./vivenu/*": {
-            "import": "./dist/vivenu/*.js",
-            "require": "./dist/vivenu/*.js",
-            "types": "./dist/vivenu/*.d.ts"
-        },
-        "./sevdesk": {
-            "import": "./dist/sevdesk/index.js",
-            "require": "./dist/sevdesk/index.js",
-            "types": "./dist/sevdesk/index.d.ts"
-        },
-        "./sevdesk/*": {
-            "import": "./dist/sevdesk/*.js",
-            "require": "./dist/sevdesk/*.js",
-            "types": "./dist/sevdesk/*.d.ts"
-        }
-    },
-    "scripts": {
-        "build": "tsc",
-        "dev": "tsc --watch"
-    },
-    "dependencies": {
-        "zod": "^4.3.6"
-    },
-    "devDependencies": {
-        "@types/node": "^25.5.0",
-        "typescript": "6.0.2"
-    }
+	"name": "@ticketing-billing/types",
+	"version": "0.1.0",
+	"private": true,
+	"description": "Shared types for ticketing-billing monorepo",
+	"main": "./dist/index.js",
+	"types": "./dist/index.d.ts",
+	"exports": {
+		".": {
+			"import": "./dist/index.js",
+			"require": "./dist/index.js",
+			"types": "./dist/index.d.ts"
+		},
+		"./ddb": {
+			"import": "./dist/ddb/index.js",
+			"require": "./dist/ddb/index.js",
+			"types": "./dist/ddb/index.d.ts"
+		},
+		"./qonto": {
+			"import": "./dist/qonto/index.js",
+			"require": "./dist/qonto/index.js",
+			"types": "./dist/qonto/index.d.ts"
+		},
+		"./qonto/*": {
+			"import": "./dist/qonto/*.js",
+			"require": "./dist/qonto/*.js",
+			"types": "./dist/qonto/*.d.ts"
+		},
+		"./vivenu": {
+			"import": "./dist/vivenu/index.js",
+			"require": "./dist/vivenu/index.js",
+			"types": "./dist/vivenu/index.d.ts"
+		},
+		"./vivenu/*": {
+			"import": "./dist/vivenu/*.js",
+			"require": "./dist/vivenu/*.js",
+			"types": "./dist/vivenu/*.d.ts"
+		},
+		"./sevdesk": {
+			"import": "./dist/sevdesk/index.js",
+			"require": "./dist/sevdesk/index.js",
+			"types": "./dist/sevdesk/index.d.ts"
+		},
+		"./sevdesk/*": {
+			"import": "./dist/sevdesk/*.js",
+			"require": "./dist/sevdesk/*.js",
+			"types": "./dist/sevdesk/*.d.ts"
+		}
+	},
+	"scripts": {
+		"build": "tsc",
+		"dev": "tsc --watch"
+	},
+	"dependencies": {
+		"zod": "^4.3.6"
+	},
+	"devDependencies": {
+		"@types/node": "^25.5.0",
+		"typescript": "6.0.2"
+	}
 }

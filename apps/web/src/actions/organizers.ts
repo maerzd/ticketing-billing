@@ -53,14 +53,14 @@ const enrichCreatePersistenceError = (
 	error: unknown,
 	ids: {
 		beneficiaryId?: string;
-		sevdeskCustomerId?: string;
+		sevdeskContactId?: string;
 	},
 ): never => {
 	const message = getErrorMessage(error, "Failed to create organizer");
 	const sideEffects: string[] = [];
 
-	if (ids.sevdeskCustomerId) {
-		sideEffects.push(`Sevdesk contact was created (${ids.sevdeskCustomerId})`);
+	if (ids.sevdeskContactId) {
+		sideEffects.push(`Sevdesk contact was created (${ids.sevdeskContactId})`);
 	}
 
 	if (ids.beneficiaryId) {
@@ -84,18 +84,25 @@ const enrichExternalCreationError = (
 	context: {
 		failedStep: "Qonto beneficiary" | "Sevdesk contact";
 		beneficiaryId?: string;
-		sevdeskCustomerId?: string;
+		sevdeskContactId?: string;
 	},
 ): never => {
-	const message = getErrorMessage(error, `${context.failedStep} creation failed`);
+	const message = getErrorMessage(
+		error,
+		`${context.failedStep} creation failed`,
+	);
 	const sideEffects: string[] = [];
 
-	if (context.sevdeskCustomerId) {
-		sideEffects.push(`Sevdesk contact was created (${context.sevdeskCustomerId})`);
+	if (context.sevdeskContactId) {
+		sideEffects.push(
+			`Sevdesk contact was created (${context.sevdeskContactId})`,
+		);
 	}
 
 	if (context.beneficiaryId) {
-		sideEffects.push(`Qonto beneficiary was created (${context.beneficiaryId})`);
+		sideEffects.push(
+			`Qonto beneficiary was created (${context.beneficiaryId})`,
+		);
 	}
 
 	const prefix =
@@ -129,7 +136,8 @@ export async function createOrganizer(input: CreateOrganizerInput) {
 		const sevdeskClient = new SevdeskClient();
 		const sevdeskContactsService = new SevdeskContactsService(sevdeskClient);
 
-		const hasAnySepaField = parsed.sepaBeneficiaryName || parsed.iban || parsed.bic;
+		const hasAnySepaField =
+			parsed.sepaBeneficiaryName || parsed.iban || parsed.bic;
 
 		const beneficiary = parsed.qontoBeneficiaryId
 			? { id: parsed.qontoBeneficiaryId }
@@ -143,18 +151,25 @@ export async function createOrganizer(input: CreateOrganizerInput) {
 					});
 					if (!qontoInput.success) {
 						throw new AppError(
-							qontoInput.error.issues[0]?.message ?? "To create a Qonto beneficiary, provide SEPA Begünstigter, IBAN and BIC.",
+							qontoInput.error.issues[0]?.message ??
+							"To create a Qonto beneficiary, provide SEPA Begünstigter, IBAN and BIC.",
 							400,
 						);
 					}
 					return beneficiariesService
 						.createBeneficiary(toQontoBeneficiaryInput(qontoInput.data))
-						.catch((error) => enrichExternalCreationError(error, { failedStep: "Qonto beneficiary" }));
+						.catch((error) =>
+							enrichExternalCreationError(error, {
+								failedStep: "Qonto beneficiary",
+							}),
+						);
 				})()
 				: undefined;
 
-		const sevdeskContact = parsed.sevdeskCustomerId
-			? { id: parsed.sevdeskCustomerId }
+		const sevdeskContact = parsed.sevdeskContactId
+			? {
+				contactId: parsed.sevdeskContactId,
+			}
 			: await sevdeskContactsService
 				.createOrganizerWithContacts({
 					name: parsed.name,
@@ -177,12 +192,12 @@ export async function createOrganizer(input: CreateOrganizerInput) {
 		const created: OrganizerRecord = await organizersService
 			.createOrganizer({
 				...parsed,
-				sevdeskCustomerId: sevdeskContact?.id,
+				sevdeskContactId: sevdeskContact?.contactId,
 				qontoBeneficiaryId: beneficiary?.id,
 			})
 			.catch((error) =>
 				enrichCreatePersistenceError(error, {
-					sevdeskCustomerId: sevdeskContact?.id,
+					sevdeskContactId: sevdeskContact?.contactId,
 					beneficiaryId: beneficiary?.id,
 				}),
 			);
@@ -220,7 +235,8 @@ export async function updateOrganizer(input: UpdateOrganizerInput) {
 		const sevdeskContactsService = new SevdeskContactsService(sevdeskClient);
 
 		// Qonto: IBAN/BIC are immutable. Update name/email if beneficiary exists, else create.
-		let qontoBeneficiaryId = existing.qontoBeneficiaryId ?? input.qontoBeneficiaryId;
+		let qontoBeneficiaryId =
+			existing.qontoBeneficiaryId ?? input.qontoBeneficiaryId;
 		if (qontoBeneficiaryId) {
 			// Update mutable fields (name, email) on the existing beneficiary
 			await beneficiariesService
@@ -229,10 +245,13 @@ export async function updateOrganizer(input: UpdateOrganizerInput) {
 					email: input.email ?? existing.email,
 				})
 				.catch((error) =>
-					enrichExternalCreationError(error, { failedStep: "Qonto beneficiary" }),
+					enrichExternalCreationError(error, {
+						failedStep: "Qonto beneficiary",
+					}),
 				);
 		} else {
-			const sepaBeneficiaryName = input.sepaBeneficiaryName ?? existing.sepaBeneficiaryName;
+			const sepaBeneficiaryName =
+				input.sepaBeneficiaryName ?? existing.sepaBeneficiaryName;
 			const iban = input.iban ?? existing.iban;
 			const bic = input.bic ?? existing.bic;
 			const email = input.email ?? existing.email;
@@ -255,7 +274,9 @@ export async function updateOrganizer(input: UpdateOrganizerInput) {
 				const beneficiary = await beneficiariesService
 					.createBeneficiary(toQontoBeneficiaryInput(qontoInput.data))
 					.catch((error) =>
-						enrichExternalCreationError(error, { failedStep: "Qonto beneficiary" }),
+						enrichExternalCreationError(error, {
+							failedStep: "Qonto beneficiary",
+						}),
 					);
 				qontoBeneficiaryId = beneficiary.id;
 			}
@@ -275,24 +296,34 @@ export async function updateOrganizer(input: UpdateOrganizerInput) {
 			contactPersons: input.contactPersons ?? existing.contactPersons,
 		};
 
-		const existingSevdeskId = existing.sevdeskCustomerId ?? input.sevdeskCustomerId;
+		const existingSevdeskId =
+			existing.sevdeskContactId ?? input.sevdeskContactId;
 		const sevdeskContact = existingSevdeskId
 			? await sevdeskContactsService
 				.updateOrganizerContact(existingSevdeskId, sevdeskInput)
 				.catch((error) =>
-					enrichExternalCreationError(error, { failedStep: "Sevdesk contact" }),
+					enrichExternalCreationError(error, {
+						failedStep: "Sevdesk contact",
+					}),
 				)
 			: await sevdeskContactsService
 				.createOrganizerWithContacts(sevdeskInput)
 				.catch((error) =>
-					enrichExternalCreationError(error, { failedStep: "Sevdesk contact" }),
+					enrichExternalCreationError(error, {
+						failedStep: "Sevdesk contact",
+					}),
 				);
+
+		const sanitizedInput = Object.fromEntries(
+			Object.entries(input).filter(([, value]) => value !== undefined),
+		);
 
 		const updated = await organizersService
 			.updateOrganizer({
-				...input,
+				...sanitizedInput,
+				organizerId: input.organizerId,
 				qontoBeneficiaryId,
-				sevdeskCustomerId: sevdeskContact.id,
+				sevdeskContactId: sevdeskContact.contactId,
 			})
 			.catch((error) =>
 				enrichCreatePersistenceError(error, {
@@ -300,7 +331,9 @@ export async function updateOrganizer(input: UpdateOrganizerInput) {
 						!existing.qontoBeneficiaryId && qontoBeneficiaryId
 							? qontoBeneficiaryId
 							: undefined,
-					sevdeskCustomerId: !existing.sevdeskCustomerId ? sevdeskContact.id : undefined,
+					sevdeskContactId: !existing.sevdeskContactId
+						? sevdeskContact.contactId
+						: undefined,
 				}),
 			);
 

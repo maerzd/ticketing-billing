@@ -18,7 +18,7 @@ export type UpdateBeneficiaryInput = z.infer<
 >;
 
 export class BeneficiariesService {
-	constructor(private readonly client: QontoClient) { }
+	constructor(private readonly client: QontoClient) {}
 
 	async listBeneficiaries(page: number = 1, per_page: number = 50) {
 		return this.client.get(
@@ -50,11 +50,9 @@ export class BeneficiariesService {
 	async updateBeneficiary(id: string, input: UpdateBeneficiaryInput) {
 		const validated = QontoUpdateSepaBeneficiarySchema.parse(input);
 		return this.client
-			.patch(
-				`/sepa/beneficiaries/${id}`,
-				QontoSepaBeneficiaryResponseSchema,
-				{ beneficiary: validated },
-			)
+			.patch(`/sepa/beneficiaries/${id}`, QontoSepaBeneficiaryResponseSchema, {
+				beneficiary: validated,
+			})
 			.then((response) => response.beneficiary);
 	}
 

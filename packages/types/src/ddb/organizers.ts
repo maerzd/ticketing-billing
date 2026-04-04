@@ -15,7 +15,9 @@ export const OrganizerBillingAddressSchema = z.object({
 	lastName: z.string().min(2, "Rechnungsanschrift: Nachname ist erforderlich"),
 	street: z.string().min(1, "Rechnungsanschrift: Straße ist erforderlich"),
 	city: z.string().min(1, "Rechnungsanschrift: Stadt ist erforderlich"),
-	zipCode: z.string().min(1, "Rechnungsanschrift: Postleitzahl ist erforderlich"),
+	zipCode: z
+		.string()
+		.min(1, "Rechnungsanschrift: Postleitzahl ist erforderlich"),
 	country: z.string().min(2, "Rechnungsanschrift: Land ist erforderlich"),
 });
 
@@ -40,7 +42,10 @@ export const OrganizerRecordSchema = z.object({
 	email: z.email("Ungültige E-Mail"),
 	billingAddress: OrganizerBillingAddressSchema,
 	contactPersons: z.array(OrganizerContactPersonSchema).optional(),
-	vatNumber: z.string().min(1, "Umsatzsteuernummer ist erforderlich").optional(),
+	vatNumber: z
+		.string()
+		.min(1, "Umsatzsteuernummer ist erforderlich")
+		.optional(),
 	taxIdentificationNumber: z
 		.string()
 		.min(1, "Steuernummer ist erforderlich")
@@ -52,7 +57,7 @@ export const OrganizerRecordSchema = z.object({
 		.optional(),
 	iban: z.string().min(1, "IBAN ist erforderlich").optional(),
 	bic: z.string().min(1, "BIC ist erforderlich").optional(),
-	sevdeskCustomerId: z.string().optional(),
+	sevdeskContactId: z.string().optional(),
 	qontoBeneficiaryId: z.string().optional(),
 	feeOverride: OrganizerFeeOverrideSchema.optional(),
 	status: OrganizerStatusSchema.default("ACTIVE"),
@@ -75,7 +80,9 @@ export type OrganizerStatus = z.infer<typeof OrganizerStatusSchema>;
 export type OrganizerBillingAddress = z.infer<
 	typeof OrganizerBillingAddressSchema
 >;
-export type OrganizerContactPerson = z.infer<typeof OrganizerContactPersonSchema>;
+export type OrganizerContactPerson = z.infer<
+	typeof OrganizerContactPersonSchema
+>;
 export type OrganizerRecord = z.infer<typeof OrganizerRecordSchema>;
 export type CreateOrganizerInput = z.infer<typeof CreateOrganizerInputSchema>;
 export type UpdateOrganizerInput = z.infer<typeof UpdateOrganizerInputSchema>;

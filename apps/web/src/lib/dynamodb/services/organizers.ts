@@ -113,6 +113,10 @@ export class OrganizersService {
 		const updates: string[] = ["#updatedAt = :updatedAt"];
 
 		for (const [key, value] of Object.entries(patch)) {
+			if (value === undefined) {
+				continue;
+			}
+
 			expressionNames[`#${key}`] = key;
 			expressionValues[`:${key}`] = value;
 			updates.push(`#${key} = :${key}`);

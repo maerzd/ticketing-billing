@@ -227,7 +227,7 @@ export default function Invoice({
 			if (cancelled) return;
 			if (result.success) {
 				setOrganizer(result.data);
-				setSelectedClientId(result.data.sevdeskCustomerId ?? "");
+				setSelectedClientId(result.data.sevdeskContactId ?? "");
 			} else {
 				setOrganizer(null);
 			}

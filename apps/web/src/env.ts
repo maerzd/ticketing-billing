@@ -32,7 +32,11 @@ const envSchema = z
 			.default(43),
 		SEVDESK_COUNTRY_ID: z.coerce.number().int().positive().default(1),
 		SEVDESK_TAX_RULE_ID: z.coerce.number().int().positive().default(1),
-		SEVDESK_CONTACT_PERSON_ID: z.coerce.number().int().positive().default(1469956),
+		SEVDESK_CONTACT_PERSON_ID: z.coerce
+			.number()
+			.int()
+			.positive()
+			.default(1469956),
 		SEVDESK_INVOICE_UNIT_ID: z.coerce.number().int().positive().default(1),
 	})
 	.superRefine((value, context) => {

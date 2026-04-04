@@ -46,7 +46,7 @@ export const OrganizerFormSchema = z.object({
 		zipCode: z.string(),
 		country: z.string(),
 	}),
-	sevdeskCustomerId: z.string(),
+	sevdeskContactId: z.string(),
 	qontoBeneficiaryId: z.string(),
 	feeOverride: z.object({
 		pctRate: z.string(),
@@ -102,7 +102,7 @@ export const OrganizerFormToCreateInputSchema = OrganizerFormSchema.transform(
 				zipCode: values.billingAddress.zipCode.trim(),
 				country: values.billingAddress.country.trim(),
 			},
-			sevdeskCustomerId: trimToOptional(values.sevdeskCustomerId),
+			sevdeskContactId: trimToOptional(values.sevdeskContactId),
 			qontoBeneficiaryId: trimToOptional(values.qontoBeneficiaryId),
 			feeOverride: hasAnyFeeOverride
 				? {
@@ -151,7 +151,7 @@ export const defaultOrganizerFormValues = (): OrganizerFormValues => ({
 		zipCode: "",
 		country: "DE",
 	},
-	sevdeskCustomerId: "",
+	sevdeskContactId: "",
 	qontoBeneficiaryId: "",
 	feeOverride: {
 		pctRate: "",
@@ -197,7 +197,7 @@ export const organizerToFormValues = (
 		zipCode: organizer.billingAddress.zipCode,
 		country: organizer.billingAddress.country,
 	},
-	sevdeskCustomerId: organizer.sevdeskCustomerId ?? "",
+	sevdeskContactId: organizer.sevdeskContactId ?? "",
 	qontoBeneficiaryId: organizer.qontoBeneficiaryId ?? "",
 	feeOverride: {
 		pctRate:
@@ -254,6 +254,8 @@ export function OrganizerForm({
 	hideOrganizerId = false,
 	formId,
 }: Readonly<OrganizerFormProps>) {
+	const qontoBeneficiariesUrl =
+		"https://app.qonto.com/organizations/zunftick-gbr-9639/flows/sepa-transfer/beneficiaries";
 	const [submitError, setSubmitError] = useState<string | null>(null);
 	const form = useForm<OrganizerFormValues>({
 		resolver: zodResolver(OrganizerFormSchema),
@@ -305,6 +307,11 @@ export function OrganizerForm({
 	});
 
 	const errors = form.formState.errors;
+	const qontoBeneficiaryIdValue = form.watch("qontoBeneficiaryId").trim();
+	const sevdeskContactIdValue = form.watch("sevdeskContactId").trim();
+	const sevdeskContactUrl = sevdeskContactIdValue
+		? `https://my.sevdesk.de/crm/detail/id/${sevdeskContactIdValue}`
+		: null;
 
 	const taxRateOptions = useMemo(
 		() => [
@@ -540,20 +547,56 @@ export function OrganizerForm({
 				<FieldGroup>
 					<FieldLegend>Systemreferenzen (automatisch generiert)</FieldLegend>
 					<div className="grid gap-4 md:grid-cols-3">
-						<FormField
-							id="organizer-qonto-beneficiary-id"
-							label="Qonto beneficiary ID"
-							disabled={disabled}
-							registration={form.register("qontoBeneficiaryId")}
-							error={errors.qontoBeneficiaryId?.message}
-						/>
-						<FormField
-							id="organizer-sevdesk-customer-id"
-							label="sevdesk contact ID"
-							disabled={disabled}
-							registration={form.register("sevdeskCustomerId")}
-							error={errors.sevdeskCustomerId?.message}
-						/>
+						<Field>
+							<FieldLabel htmlFor="organizer-qonto-beneficiary-id">
+								Qonto beneficiary ID
+							</FieldLabel>
+							<Input
+								id="organizer-qonto-beneficiary-id"
+								disabled={disabled}
+								{...form.register("qontoBeneficiaryId")}
+							/>
+							{qontoBeneficiaryIdValue && (
+								<a
+									href={qontoBeneficiariesUrl}
+									target="_blank"
+									rel="noreferrer"
+									className="mt-1 inline-block text-blue-600 text-xs hover:underline"
+								>
+									Open in Qonto beneficiaries
+								</a>
+							)}
+							{errors.qontoBeneficiaryId?.message && (
+								<p className="mt-1 text-red-600 text-xs">
+									{errors.qontoBeneficiaryId.message}
+								</p>
+							)}
+						</Field>
+						<Field>
+							<FieldLabel htmlFor="organizer-sevdesk-customer-id">
+								sevdesk contact ID
+							</FieldLabel>
+							<Input
+								id="organizer-sevdesk-customer-id"
+								disabled={disabled}
+								{...form.register("sevdeskContactId")}
+							/>
+							{sevdeskContactUrl && (
+								<a
+									href={sevdeskContactUrl}
+									target="_blank"
+									rel="noreferrer"
+									className="mt-1 inline-block text-blue-600 text-xs hover:underline"
+								>
+									Open in sevdesk
+								</a>
+							)}
+							{errors.sevdeskContactId?.message && (
+								<p className="mt-1 text-red-600 text-xs">
+									{errors.sevdeskContactId.message}
+								</p>
+							)}
+						</Field>
 					</div>
 				</FieldGroup>
 

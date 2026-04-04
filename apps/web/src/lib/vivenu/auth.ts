@@ -22,7 +22,8 @@ declare global {
 	var __vivenuInflightLogin: Promise<string> | null;
 }
 if (!("__vivenuTokenCache" in globalThis)) globalThis.__vivenuTokenCache = null;
-if (!("__vivenuInflightLogin" in globalThis)) globalThis.__vivenuInflightLogin = null;
+if (!("__vivenuInflightLogin" in globalThis))
+	globalThis.__vivenuInflightLogin = null;
 
 async function generateVivenuOtp(
 	otpSecret?: string,
@@ -103,7 +104,10 @@ export async function getVivenuHubbleToken(): Promise<string> {
 
 	const fiveMinutes = 5 * 60 * 1000;
 
-	if (globalThis.__vivenuTokenCache && globalThis.__vivenuTokenCache.expiresAt - Date.now() > fiveMinutes) {
+	if (
+		globalThis.__vivenuTokenCache &&
+		globalThis.__vivenuTokenCache.expiresAt - Date.now() > fiveMinutes
+	) {
 		return globalThis.__vivenuTokenCache.jwt;
 	}
 
@@ -144,7 +148,10 @@ export async function getVivenuHubbleToken(): Promise<string> {
  */
 export function isVivenuAuthenticated(): boolean {
 	const fiveMinutes = 5 * 60 * 1000;
-	return globalThis.__vivenuTokenCache !== null && globalThis.__vivenuTokenCache.expiresAt - Date.now() > fiveMinutes;
+	return (
+		globalThis.__vivenuTokenCache !== null &&
+		globalThis.__vivenuTokenCache.expiresAt - Date.now() > fiveMinutes
+	);
 }
 
 /**
