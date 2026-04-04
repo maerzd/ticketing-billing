@@ -1,0 +1,50 @@
+{
+	"$schema": "https://turbo.build/schema.json",
+	"ui": "tui",
+	"tasks": {
+		"build": {
+			"dependsOn": ["^build"],
+			"env": [
+				"NEXT_PUBLIC_VIVENU_API_URL",
+				"GOOGLE_MAPS_API_KEY",
+				"NOTION_API_KEY",
+				"VIVENU_API_KEY",
+				"RESEND_API_KEY",
+				"RESEND_SEND_FROM_EMAIL",
+				"RESEND_NEWSLETTER_TOPIC_ID",
+				"SECRET_PASSPHRASE",
+				"VIVENU_WEBHOOK_SECRET",
+				"NEXT_PUBLIC_VIVENU_SELLER_ID",
+				"NEXT_PUBLIC_VIVENU_SHOP_URL",
+				"ENABLE_EXPERIMENTAL_COREPACK"
+			],
+			"inputs": ["$TURBO_DEFAULT$", ".env*"],
+			"outputs": [".next/**", "!.next/cache/**"]
+		},
+		"start": {
+			"dependsOn": ["^start"]
+		},
+		"clean": {
+			"dependsOn": ["^clean"]
+		},
+		"format": {
+			"dependsOn": ["^format"]
+		},
+		"lint": {
+			"dependsOn": ["^lint"]
+		},
+		"check-types": {
+			"dependsOn": ["^check-types"]
+		},
+		"dev": {
+			"cache": false,
+			"persistent": true
+		},
+		"test": {
+			"dependsOn": ["^test"]
+		},
+		"emails": {
+			"dependsOn": ["^emails"]
+		}
+	}
+}
