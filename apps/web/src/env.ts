@@ -3,6 +3,7 @@ import { z } from "zod";
 const envSchema = z
 	.object({
 		AWS_REGION: z.string().min(1),
+		AWS_ROLE_ARN: z.string().optional(),
 		AWS_ACCESS_KEY_ID: z.string().optional(),
 		AWS_SECRET_ACCESS_KEY: z.string().optional(),
 		AWS_SESSION_TOKEN: z.string().optional(),
@@ -52,6 +53,7 @@ const envSchema = z
 // Parse and validate environment variables
 const env = envSchema.parse({
 	AWS_REGION: process.env.AWS_REGION,
+	AWS_ROLE_ARN: process.env.AWS_ROLE_ARN,
 	AWS_ACCESS_KEY_ID: process.env.AWS_ACCESS_KEY_ID,
 	AWS_SECRET_ACCESS_KEY: process.env.AWS_SECRET_ACCESS_KEY,
 	AWS_SESSION_TOKEN: process.env.AWS_SESSION_TOKEN,

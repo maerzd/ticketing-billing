@@ -284,7 +284,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@aws-sdk/credential-provider-web-identity@npm:^3.972.28":
+"@aws-sdk/credential-provider-web-identity@npm:^3.609.0, @aws-sdk/credential-provider-web-identity@npm:^3.972.28":
   version: 3.972.28
   resolution: "@aws-sdk/credential-provider-web-identity@npm:3.972.28"
   dependencies:
@@ -2678,6 +2678,7 @@ __metadata:
     "@types/node": "npm:^25.5.2"
     "@types/react": "npm:^19.2.14"
     "@types/react-dom": "npm:^19.2.3"
+    "@vercel/oidc-aws-credentials-provider": "npm:^3.0.7"
     "@workos-inc/authkit-nextjs": "npm:^3.0.0"
     class-variance-authority: "npm:^0.7.1"
     clsx: "npm:^2.1.1"
@@ -2927,6 +2928,23 @@ __metadata:
   version: 4.0.2
   resolution: "@types/validate-npm-package-name@npm:4.0.2"
   checksum: 10c0/5a109fe12570b7125740fdac8678970e3caf7de0cbd6e15cf93dad67a427a3a83e0759b5d4b64fd75bce6cdf43b0569275456a35183059046cba6c25d096b916
+  languageName: node
+  linkType: hard
+
+"@vercel/oidc-aws-credentials-provider@npm:^3.0.7":
+  version: 3.0.7
+  resolution: "@vercel/oidc-aws-credentials-provider@npm:3.0.7"
+  dependencies:
+    "@aws-sdk/credential-provider-web-identity": "npm:^3.609.0"
+    "@vercel/oidc": "npm:3.2.0"
+  checksum: 10c0/937fe1603523bb9fb419ad7af2f0c7bae9ee0c87cb6c7f7689c5cc6c0c0ba17bb838bccaa6ab231d8dfa4b8334f76ca689c542756ed16f8245b2f1022af821c8
+  languageName: node
+  linkType: hard
+
+"@vercel/oidc@npm:3.2.0":
+  version: 3.2.0
+  resolution: "@vercel/oidc@npm:3.2.0"
+  checksum: 10c0/98318d3236f58c296616c8c2e1655b268c7bf58525bcd985adac7af6d900e05fc610f6f03ce2ff4bdcd3df7885a40c0ca44fdc761f122dcfe15a78c2756b0243
   languageName: node
   linkType: hard
 
