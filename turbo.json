@@ -3,9 +3,12 @@
 	"ui": "tui",
 	"tasks": {
 		"build": {
-			"dependsOn": ["^build"],
+			"dependsOn": [
+				"^build"
+			],
 			"env": [
 				"AWS_ACCESS_KEY_ID",
+				"AWS_ROLE_ARN",
 				"AWS_REGION",
 				"AWS_SECRET_ACCESS_KEY",
 				"DYNAMODB_BILLING_RECORDS_TABLE",
@@ -35,33 +38,54 @@
 				"WORKOS_CLIENT_ID",
 				"WORKOS_COOKIE_PASSWORD"
 			],
-			"inputs": ["$TURBO_DEFAULT$", ".env*"],
-			"outputs": [".next/**", "!.next/cache/**"]
+			"inputs": [
+				"$TURBO_DEFAULT$",
+				".env*"
+			],
+			"outputs": [
+				".next/**",
+				"!.next/cache/**",
+				"dist/**"
+			]
 		},
 		"start": {
-			"dependsOn": ["^start"]
+			"dependsOn": [
+				"^start"
+			]
 		},
 		"clean": {
-			"dependsOn": ["^clean"]
+			"dependsOn": [
+				"^clean"
+			]
 		},
 		"format": {
-			"dependsOn": ["^format"]
+			"dependsOn": [
+				"^format"
+			]
 		},
 		"lint": {
-			"dependsOn": ["^lint"]
+			"dependsOn": [
+				"^lint"
+			]
 		},
 		"check-types": {
-			"dependsOn": ["^check-types"]
+			"dependsOn": [
+				"^check-types"
+			]
 		},
 		"dev": {
 			"cache": false,
 			"persistent": true
 		},
 		"test": {
-			"dependsOn": ["^test"]
+			"dependsOn": [
+				"^test"
+			]
 		},
 		"emails": {
-			"dependsOn": ["^emails"]
+			"dependsOn": [
+				"^emails"
+			]
 		}
 	}
 }
