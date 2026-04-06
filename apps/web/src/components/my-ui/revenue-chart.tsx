@@ -1,8 +1,9 @@
 "use client";
 
+import type { RevenueResponse } from "@ticketing-billing/types/vivenu/revenue";
+import type { TicketSales } from "@ticketing-billing/types/vivenu/ticket-sales";
 import * as React from "react";
 import { CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts";
-
 import {
 	Card,
 	CardContent,
@@ -17,8 +18,6 @@ import {
 	ChartTooltipContent,
 } from "@/components/ui/chart";
 import { formatNumber } from "@/lib/utils";
-import type { RevenueResponse } from "@/types/vivenu/revenue";
-import type { TicketSales } from "@/types/vivenu/ticket-sales";
 
 export const description = "An interactive line chart";
 

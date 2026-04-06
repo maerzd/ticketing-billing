@@ -1,5 +1,5 @@
-import type { VivenuEvent as VivenuEventModel } from "@/types/vivenu/event";
-import type { Ticket } from "@/types/vivenu/ticket";
+import type { VivenuEvent as VivenuEventModel } from "@ticketing-billing/types/vivenu/event";
+import type { Ticket } from "@ticketing-billing/types/vivenu/ticket";
 
 export type FilterCondition = {
 	value: string | Date | string[] | Date[];
@@ -116,15 +116,15 @@ export interface InviteUserResult {
 	error?: string;
 }
 
-export type { AccessUser } from "@/types/vivenu/accessuser";
-export type { VivenuEvent } from "@/types/vivenu/event";
-export type { PosDevice } from "@/types/vivenu/pos";
+export type { AccessUser } from "@ticketing-billing/types/vivenu/accessuser";
+export type { VivenuEvent } from "@ticketing-billing/types/vivenu/event";
+export type { PosDevice } from "@ticketing-billing/types/vivenu/pos";
 export type {
 	PosRevenueResponse,
 	RevenueResponse,
-} from "@/types/vivenu/revenue";
-export type { TicketSales } from "@/types/vivenu/ticket-sales";
-export type { UsersResponse } from "@/types/vivenu/user";
+} from "@ticketing-billing/types/vivenu/revenue";
+export type { TicketSales } from "@ticketing-billing/types/vivenu/ticket-sales";
+export type { UsersResponse } from "@ticketing-billing/types/vivenu/user";
 
 // Authentication types
 export interface VivenuLoginResponse {

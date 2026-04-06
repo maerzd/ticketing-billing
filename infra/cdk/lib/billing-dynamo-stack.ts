@@ -8,13 +8,15 @@ import {
 import type { Construct } from "constructs";
 
 export class BillingDynamoStack extends cdk.Stack {
+	public readonly organizersTable: Table;
+	public readonly billingRecordsTable: Table;
+
 	constructor(scope: Construct, id: string, props?: cdk.StackProps) {
 		super(scope, id, props);
 
-		const organizersTable = new Table(this, "OrganizersTable", {
-			tableName: "Organizers",
+		this.organizersTable = new Table(this, "OrganizersTable", {
 			partitionKey: {
-				name: "organizerid",
+				name: "organizerId",
 				type: AttributeType.STRING,
 			},
 			billingMode: BillingMode.PAY_PER_REQUEST,
@@ -25,10 +27,9 @@ export class BillingDynamoStack extends cdk.Stack {
 			removalPolicy: cdk.RemovalPolicy.DESTROY,
 		});
 
-		const billingRecordsTable = new Table(this, "BillingRecordsTable", {
-			tableName: "BillingRecords",
+		this.billingRecordsTable = new Table(this, "BillingRecordsTable", {
 			partitionKey: {
-				name: "organizerid",
+				name: "organizerId",
 				type: AttributeType.STRING,
 			},
 			sortKey: {
@@ -43,7 +44,7 @@ export class BillingDynamoStack extends cdk.Stack {
 			removalPolicy: cdk.RemovalPolicy.DESTROY,
 		});
 
-		billingRecordsTable.addGlobalSecondaryIndex({
+		this.billingRecordsTable.addGlobalSecondaryIndex({
 			indexName: "StatusIndex",
 			partitionKey: {
 				name: "status",
@@ -56,7 +57,7 @@ export class BillingDynamoStack extends cdk.Stack {
 			projectionType: cdk.aws_dynamodb.ProjectionType.ALL,
 		});
 
-		billingRecordsTable.addGlobalSecondaryIndex({
+		this.billingRecordsTable.addGlobalSecondaryIndex({
 			indexName: "EventIndex",
 			partitionKey: {
 				name: "eventid",
@@ -66,12 +67,12 @@ export class BillingDynamoStack extends cdk.Stack {
 		});
 
 		new cdk.CfnOutput(this, "OrganizersTableName", {
-			value: organizersTable.tableName,
+			value: this.organizersTable.tableName,
 			exportName: "OrganizersTableName",
 		});
 
 		new cdk.CfnOutput(this, "BillingRecordsTableName", {
-			value: billingRecordsTable.tableName,
+			value: this.billingRecordsTable.tableName,
 			exportName: "BillingRecordsTableName",
 		});
 

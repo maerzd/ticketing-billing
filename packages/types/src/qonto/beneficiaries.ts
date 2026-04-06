@@ -35,7 +35,7 @@ export const QontoCreateSepaBeneficiarySchema = z.object({
 	name: z.string().min(1),
 	iban: z.string().min(1),
 	bic: z.string().optional().nullable(),
-	email: z.string().email().optional().nullable(),
+	email: z.email().optional().nullable(),
 	activity_tag: z.string().optional().nullable(),
 });
 
@@ -57,4 +57,18 @@ export const QontoBeneficiaryIdsSchema = z.object({
 
 export type QontoBeneficiaryIdsInput = z.infer<
 	typeof QontoBeneficiaryIdsSchema
+>;
+
+/**
+ * Payload for PATCH /sepa/beneficiaries/{id}.
+ * Only name, email and activity_tag can be updated — IBAN/BIC are immutable.
+ */
+export const QontoUpdateSepaBeneficiarySchema = z.object({
+	name: z.string().min(1).optional(),
+	email: z.email().optional().nullable(),
+	activity_tag: z.string().optional().nullable(),
+});
+
+export type UpdateSepaBeneficiaryInput = z.infer<
+	typeof QontoUpdateSepaBeneficiarySchema
 >;

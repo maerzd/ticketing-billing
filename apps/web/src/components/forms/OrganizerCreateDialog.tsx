@@ -1,14 +1,12 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useId, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { createOrganizer } from "@/actions/organizers";
 import {
 	defaultOrganizerFormValues,
-	formValuesToCreateInput,
 	OrganizerForm,
-	type OrganizerFormValues,
 } from "@/components/forms/OrganizerForm";
 import { Button } from "@/components/ui/button";
 import {
@@ -29,27 +27,23 @@ export function OrganizerCreateDialog({
 	onCreated,
 }: Readonly<OrganizerCreateDialogProps>) {
 	const router = useRouter();
+	const formId = useId();
 	const [open, setOpen] = useState(false);
 	const [isPending, startTransition] = useTransition();
-	const [values, setValues] = useState<OrganizerFormValues>(
+	const [initialValues, setInitialValues] = useState(
 		defaultOrganizerFormValues(),
 	);
 
-	const handleSubmit = () => {
-		if (!values.organizerid.trim().startsWith("org-")) {
-			toast.error("Organizer ID must start with 'org-'");
-			return;
-		}
-
+	const handleSubmit = (values: Parameters<typeof createOrganizer>[0]) => {
 		startTransition(async () => {
-			const result = await createOrganizer(formValuesToCreateInput(values));
+			const result = await createOrganizer(values);
 			if (!result.success) {
 				toast.error(result.error ?? "Failed to create organizer");
 				return;
 			}
 
 			toast.success("Organizer created");
-			setValues(defaultOrganizerFormValues());
+			setInitialValues(defaultOrganizerFormValues());
 			setOpen(false);
 			onCreated?.();
 			router.refresh();
@@ -69,8 +63,9 @@ export function OrganizerCreateDialog({
 					</DialogDescription>
 				</DialogHeader>
 				<OrganizerForm
-					values={values}
-					onChange={setValues}
+					formId={formId}
+					initialValues={initialValues}
+					onSubmit={handleSubmit}
 					disabled={isPending}
 				/>
 				<DialogFooter>
@@ -81,7 +76,7 @@ export function OrganizerCreateDialog({
 					>
 						Abbrechen
 					</Button>
-					<Button onClick={handleSubmit} disabled={isPending}>
+					<Button type="submit" form={formId} disabled={isPending}>
 						{isPending ? "Wird erstellt..." : "Organizer erstellen"}
 					</Button>
 				</DialogFooter>

@@ -1,5 +1,7 @@
 "use client";
 
+import type { QontoSepaBeneficiary } from "@ticketing-billing/types/qonto/beneficiaries";
+import type { QontoBankAccount } from "@ticketing-billing/types/qonto/organization";
 import { useState } from "react";
 import { TransferForm } from "@/components/forms/TransferForm";
 import { Button } from "@/components/ui/button";
@@ -11,8 +13,6 @@ import {
 	DialogTitle,
 	DialogTrigger,
 } from "@/components/ui/dialog";
-import type { QontoSepaBeneficiary } from "@/types/qonto/beneficiaries";
-import type { QontoBankAccount } from "@/types/qonto/organization";
 
 interface TransferCreateDialogProps {
 	beneficiaries: QontoSepaBeneficiary[];

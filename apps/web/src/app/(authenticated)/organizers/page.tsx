@@ -1,9 +1,20 @@
-import { queryOrganizers } from "@/actions/organizers";
+import type { OrganizerRecord } from "@ticketing-billing/types";
 import { OrganizersManager } from "@/app/(authenticated)/organizers/OrganizersManager";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { OrganizersService } from "@/lib/dynamodb/services/organizers";
+
+const organizersService = new OrganizersService();
 
 export default async function OrganizersPage() {
-	const result = await queryOrganizers();
+	let organizers: OrganizerRecord[] | null = null;
+	let fetchError: string | undefined;
+
+	try {
+		organizers = await organizersService.listOrganizers();
+	} catch (error) {
+		fetchError =
+			error instanceof Error ? error.message : "Failed to fetch organizers";
+	}
 
 	return (
 		<div className="space-y-8">
@@ -14,18 +25,18 @@ export default async function OrganizersPage() {
 				</p>
 			</div>
 
-			{result.success === false && (
+			{fetchError && (
 				<Card className="border-red-200 bg-red-50">
 					<CardHeader>
 						<CardTitle className="text-red-900">Error</CardTitle>
 					</CardHeader>
 					<CardContent>
-						<p className="text-red-800">{result.error}</p>
+						<p className="text-red-800">{fetchError}</p>
 					</CardContent>
 				</Card>
 			)}
 
-			{result.success && <OrganizersManager organizers={result.data} />}
+			{organizers && <OrganizersManager organizers={organizers} />}
 		</div>
 	);
 }

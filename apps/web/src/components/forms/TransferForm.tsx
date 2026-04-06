@@ -1,5 +1,7 @@
 "use client";
 
+import type { QontoSepaBeneficiary } from "@ticketing-billing/types/qonto/beneficiaries";
+import type { QontoBankAccount } from "@ticketing-billing/types/qonto/organization";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -7,8 +9,6 @@ import { createTransfer, verifyTransferPayee } from "@/actions/transfers";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import type { QontoSepaBeneficiary } from "@/types/qonto/beneficiaries";
-import type { QontoBankAccount } from "@/types/qonto/organization";
 
 interface TransferFormProps {
 	beneficiaries: QontoSepaBeneficiary[];

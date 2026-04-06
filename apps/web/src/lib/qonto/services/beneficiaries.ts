@@ -1,15 +1,20 @@
-import type { z } from "zod";
-import type { QontoClient } from "@/lib/qonto/client";
 import {
 	QontoBeneficiaryIdsSchema,
 	QontoCreateSepaBeneficiarySchema,
 	QontoSepaBeneficiaryBatchResponseSchema,
 	QontoSepaBeneficiaryListSchema,
 	QontoSepaBeneficiaryResponseSchema,
-} from "@/types/qonto/beneficiaries";
+	QontoUpdateSepaBeneficiarySchema,
+} from "@ticketing-billing/types/qonto/beneficiaries";
+import type { z } from "zod";
+import type { QontoClient } from "@/lib/qonto/client";
 
 export type CreateBeneficiaryInput = z.infer<
 	typeof QontoCreateSepaBeneficiarySchema
+>;
+
+export type UpdateBeneficiaryInput = z.infer<
+	typeof QontoUpdateSepaBeneficiarySchema
 >;
 
 export class BeneficiariesService {
@@ -39,6 +44,15 @@ export class BeneficiariesService {
 				{ beneficiary: validated },
 				headers,
 			)
+			.then((response) => response.beneficiary);
+	}
+
+	async updateBeneficiary(id: string, input: UpdateBeneficiaryInput) {
+		const validated = QontoUpdateSepaBeneficiarySchema.parse(input);
+		return this.client
+			.patch(`/sepa/beneficiaries/${id}`, QontoSepaBeneficiaryResponseSchema, {
+				beneficiary: validated,
+			})
 			.then((response) => response.beneficiary);
 	}
 

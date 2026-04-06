@@ -1,4 +1,7 @@
-import type { QontoAPIError, QontoOAuthError } from "@/types/qonto/qonto";
+import type {
+	QontoAPIError,
+	QontoOAuthError,
+} from "@ticketing-billing/types/qonto/qonto";
 
 export class AppError extends Error {
 	public readonly statusCode: number;

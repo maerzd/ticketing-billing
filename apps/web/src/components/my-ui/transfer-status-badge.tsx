@@ -1,5 +1,5 @@
+import type { QontoTransferStatus } from "@ticketing-billing/types/qonto/sepa-transfers";
 import { cn } from "@/lib/utils";
-import type { QontoTransferStatus } from "@/types/qonto/sepa-transfers";
 
 interface TransferStatusBadgeProps {
 	status: QontoTransferStatus;

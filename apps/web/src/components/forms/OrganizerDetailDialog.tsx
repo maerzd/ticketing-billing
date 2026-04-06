@@ -1,13 +1,12 @@
 "use client";
 
+import type { OrganizerRecord } from "@ticketing-billing/types/ddb";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useId, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { updateOrganizer } from "@/actions/organizers";
 import {
-	formValuesToUpdateInput,
 	OrganizerForm,
-	type OrganizerFormValues,
 	organizerToFormValues,
 } from "@/components/forms/OrganizerForm";
 import { Button } from "@/components/ui/button";
@@ -19,7 +18,6 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "@/components/ui/dialog";
-import type { OrganizerRecord } from "@/types/organizers";
 
 interface OrganizerDetailDialogProps {
 	open: boolean;
@@ -35,39 +33,26 @@ export function OrganizerDetailDialog({
 	onSaved,
 }: Readonly<OrganizerDetailDialogProps>) {
 	const router = useRouter();
+	const formId = useId();
 	const [isPending, startTransition] = useTransition();
-	const [isEditing, setIsEditing] = useState(false);
-	const [values, setValues] = useState<OrganizerFormValues | null>(null);
+	const [initialValues, setInitialValues] = useState(
+		organizer ? organizerToFormValues(organizer) : null,
+	);
 
 	useEffect(() => {
 		if (organizer) {
-			setValues(organizerToFormValues(organizer));
-			setIsEditing(false);
+			setInitialValues(organizerToFormValues(organizer));
 		}
 	}, [organizer]);
 
 	const handleClose = () => {
 		onOpenChange(false);
-		setIsEditing(false);
 	};
 
-	const handleCancelEdit = () => {
-		if (organizer) {
-			setValues(organizerToFormValues(organizer));
-		}
-		setIsEditing(false);
-	};
-
-	const handleSave = () => {
-		if (!values || !organizer) return;
-
-		if (!values.organizerid.trim().startsWith("org-")) {
-			toast.error("Veranstalter ID must start with 'org-'");
-			return;
-		}
-
+	const handleSave = (values: Parameters<typeof updateOrganizer>[0]) => {
+		if (!organizer) return;
 		startTransition(async () => {
-			const result = await updateOrganizer(formValuesToUpdateInput(values));
+			const result = await updateOrganizer(values);
 			if (!result.success) {
 				toast.error(result.error ?? "Update fehlgeschlagen");
 				return;
@@ -75,7 +60,6 @@ export function OrganizerDetailDialog({
 
 			toast.success("Veranstalter aktualisiert");
 			onSaved?.(result.data);
-			setIsEditing(false);
 			router.refresh();
 		});
 	};
@@ -86,41 +70,28 @@ export function OrganizerDetailDialog({
 				<DialogHeader>
 					<DialogTitle>
 						{organizer ? organizer.name : "Veranstalter details"}
+						{" - "}({organizer?.organizerId})
 					</DialogTitle>
 					<DialogDescription>
 						Veranstalter anzeigen und bearbeiten
 					</DialogDescription>
 				</DialogHeader>
-				{values && (
+				{initialValues && (
 					<OrganizerForm
-						values={values}
-						onChange={setValues}
-						disabled={!isEditing || isPending}
+						formId={formId}
+						initialValues={initialValues}
+						onSubmit={handleSave}
+						disabled={isPending}
 						hideOrganizerId
 					/>
 				)}
 				<DialogFooter>
-					{!isEditing ? (
-						<>
-							<Button variant="outline" onClick={handleClose}>
-								Schliessen
-							</Button>
-							<Button onClick={() => setIsEditing(true)}>Bearbeiten</Button>
-						</>
-					) : (
-						<>
-							<Button
-								variant="outline"
-								onClick={handleCancelEdit}
-								disabled={isPending}
-							>
-								Verwerfen
-							</Button>
-							<Button onClick={handleSave} disabled={isPending}>
-								{isPending ? "Speichern..." : "Speichern"}
-							</Button>
-						</>
-					)}
+					<Button variant="outline" onClick={handleClose} disabled={isPending}>
+						Abbrechen
+					</Button>
+					<Button type="submit" form={formId} disabled={isPending}>
+						{isPending ? "Speichern..." : "Speichern"}
+					</Button>
 				</DialogFooter>
 			</DialogContent>
 		</Dialog>

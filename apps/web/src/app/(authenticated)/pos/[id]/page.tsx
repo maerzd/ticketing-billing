@@ -1,3 +1,4 @@
+import type { PosRevenueResponse } from "@ticketing-billing/types/vivenu/revenue";
 import {
 	Table,
 	TableBody,
@@ -12,7 +13,6 @@ import {
 	fetchMonthlyPOSRevenue,
 	fetchPOS,
 } from "@/lib/vivenu/client";
-import type { PosRevenueResponse } from "@/types/vivenu/revenue";
 import NotFound from "./../../../not-found";
 
 interface PageParam {

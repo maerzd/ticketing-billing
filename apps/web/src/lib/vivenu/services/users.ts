@@ -1,3 +1,4 @@
+import type { Me } from "@ticketing-billing/types/vivenu/me";
 import type { VivenuClient } from "@/lib/vivenu/client";
 import type {
 	AccessUser,
@@ -5,7 +6,6 @@ import type {
 	InviteUserResult,
 	UsersResponse,
 } from "@/lib/vivenu/types";
-import type { Me } from "@/types/vivenu/me";
 
 export class VivenuUsersService {
 	constructor(private readonly client: VivenuClient) {}

@@ -3,17 +3,25 @@
 	"private": true,
 	"packageManager": "yarn@4.12.0",
 	"workspaces": [
+		"packages/*",
 		"apps/*",
 		"infra/*"
 	],
 	"scripts": {
+		"format": "yarn workspaces foreach --all -pt run biome format --write .",
+		"check": "yarn workspaces foreach --all -pt run biome check --write .",
 		"dev": "yarn workspace @ticketing-billing/web dev",
-		"build": "yarn workspace @ticketing-billing/web build",
+		"build": "yarn workspace @ticketing-billing/types run build && yarn workspace @ticketing-billing/web run build",
 		"start": "yarn workspace @ticketing-billing/web start",
 		"lint": "yarn workspace @ticketing-billing/web lint",
+		"build:types": "yarn workspace @ticketing-billing/types build",
 		"cdk:synth": "yarn workspace @ticketing-billing/cdk synth",
 		"cdk:diff": "yarn workspace @ticketing-billing/cdk diff",
 		"cdk:deploy": "yarn workspace @ticketing-billing/cdk deploy",
 		"cdk:bootstrap": "yarn workspace @ticketing-billing/cdk bootstrap"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "2.4.10",
+		"turbo": "^2.9.4"
 	}
 }

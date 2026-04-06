@@ -1,416 +1,570 @@
 "use client";
 
-import { Field, FieldLabel } from "@/components/ui/field";
+import { zodResolver } from "@hookform/resolvers/zod";
+import {
+	type CreateOrganizerInput,
+	CreateOrganizerInputSchema,
+	type OrganizerRecord,
+	type OrganizerStatus,
+} from "@ticketing-billing/types/ddb";
+import { useMemo, useState } from "react";
+import { Controller, useForm } from "react-hook-form";
+import { z } from "zod";
+import {
+	Field,
+	FieldError,
+	FieldGroup,
+	FieldLabel,
+	FieldLegend,
+	FieldSeparator,
+} from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import type {
-	CreateOrganizerInput,
-	OrganizerRecord,
-	OrganizerStatus,
-	UpdateOrganizerInput,
-} from "@/types/organizers";
 
-export interface OrganizerFormValues {
-	organizerid: string;
-	name: string;
-	first_name: string;
-	last_name: string;
-	email: string;
-	status: OrganizerStatus;
-	vat_number: string;
-	tax_identification_number: string;
-	tax_rate: string;
-	iban: string;
-	bic: string;
-	billing_street_address: string;
-	billing_city: string;
-	billing_zip_code: string;
-	billing_country: string;
-	qonto_client_id: string;
-	qonto_beneficiary_id: string;
-	fee_pct_rate: string;
-	fee_per_ticket: string;
-	fee_flat: string;
-}
+const TAX_RATE_VALUES = ["0", "0.07", "0.19"] as const;
 
-interface OrganizerFormProps {
-	values: OrganizerFormValues;
-	onChange: (values: OrganizerFormValues) => void;
-	disabled?: boolean;
-	hideOrganizerId?: boolean;
-}
+/**
+ * Form schema: picks field validators from OrganizerRecordSchema where possible,
+ * overrides fields that need string representation (taxRate, feeOverride),
+ * and flattens contactPersons[0] into top-level contact* fields.
+ */
+const s = CreateOrganizerInputSchema.shape;
 
-const toOptional = (value: string) => {
-	const trimmed = value.trim();
-	return trimmed.length > 0 ? trimmed : undefined;
-};
-
-const toOptionalNumber = (value: string) => {
-	const trimmed = value.trim();
-	if (!trimmed) {
-		return undefined;
-	}
-
-	const parsed = Number(trimmed);
-	return Number.isFinite(parsed) ? parsed : undefined;
-};
-
-export const generateOrganizerId = () => {
-	const random = Math.random().toString(36).slice(2, 10);
-	return `org-${random}`;
-};
-
-export const defaultOrganizerFormValues = (): OrganizerFormValues => ({
-	organizerid: generateOrganizerId(),
-	name: "",
-	first_name: "",
-	last_name: "",
-	email: "",
-	status: "ACTIVE",
-	vat_number: "",
-	tax_identification_number: "",
-	tax_rate: "19",
-	iban: "",
-	bic: "",
-	billing_street_address: "",
-	billing_city: "",
-	billing_zip_code: "",
-	billing_country: "DE",
-	qonto_client_id: "",
-	qonto_beneficiary_id: "",
-	fee_pct_rate: "",
-	fee_per_ticket: "",
-	fee_flat: "",
+const OrganizerFormSchema = z.object({
+	organizerId: s.organizerId,
+	name: s.name.unwrap().or(z.literal("")),
+	email: s.email,
+	status: s.status.removeDefault(),
+	vatNumber: s.vatNumber.unwrap().or(z.literal("")),
+	taxIdentificationNumber: s.taxIdentificationNumber.unwrap().or(z.literal("")),
+	sepaBeneficiaryName: s.sepaBeneficiaryName.unwrap().or(z.literal("")),
+	iban: s.iban.unwrap().or(z.literal("")),
+	bic: s.bic.unwrap().or(z.literal("")),
+	billingAddress: s.billingAddress,
+	sevdeskContactId: s.sevdeskContactId.unwrap().or(z.literal("")),
+	qontoBeneficiaryId: s.qontoBeneficiaryId.unwrap().or(z.literal("")),
+	// UI-specific: string representation for select/number inputs
+	taxRate: z.enum(TAX_RATE_VALUES),
+	contactFirstName: z.string(),
+	contactLastName: z.string(),
+	contactEmail: z.string(),
+	contactPhone: z.string(),
+	feeOverride: z.object({
+		pctRate: z.string(),
+		perTicket: z.string(),
+		flat: z.string(),
+	}),
 });
 
-export const organizerToFormValues = (
-	organizer: OrganizerRecord,
-): OrganizerFormValues => ({
-	organizerid: organizer.organizerid,
-	name: organizer.name,
-	first_name: organizer.first_name,
-	last_name: organizer.last_name,
-	email: organizer.email,
-	status: organizer.status,
-	vat_number: organizer.vat_number,
-	tax_identification_number: organizer.tax_identification_number,
-	tax_rate: String(organizer.tax_rate),
-	iban: organizer.iban,
-	bic: organizer.bic,
-	billing_street_address: organizer.billing_address.street_address,
-	billing_city: organizer.billing_address.city,
-	billing_zip_code: organizer.billing_address.zip_code,
-	billing_country: organizer.billing_address.country,
-	qonto_client_id: organizer.qonto_client_id ?? "",
-	qonto_beneficiary_id: organizer.qonto_beneficiary_id ?? "",
-	fee_pct_rate: organizer.fee_override?.pct_rate
-		? String(organizer.fee_override.pct_rate)
-		: "",
-	fee_per_ticket: organizer.fee_override?.per_ticket
-		? String(organizer.fee_override.per_ticket)
-		: "",
-	fee_flat: organizer.fee_override?.flat
-		? String(organizer.fee_override.flat)
-		: "",
-});
+type OrganizerFormValues = z.infer<typeof OrganizerFormSchema>;
 
-export const formValuesToCreateInput = (
-	values: OrganizerFormValues,
-): CreateOrganizerInput => {
-	const taxRate = Number.parseInt(values.tax_rate, 10);
+/** Convert form values → CreateOrganizerInput for submission. */
+function formToInput(values: OrganizerFormValues): CreateOrganizerInput {
+	const trimToOptional = (v: string | undefined) => {
+		const t = v?.trim();
+		return t && t.length > 0 ? t : undefined;
+	};
 
-	const feePctRate = toOptionalNumber(values.fee_pct_rate);
-	const feePerTicket = toOptionalNumber(values.fee_per_ticket);
-	const feeFlat = toOptionalNumber(values.fee_flat);
+	const trimToOptionalNumber = (v: string) => {
+		const t = v.trim();
+		if (!t) return undefined;
+		const n = Number(t);
+		return Number.isFinite(n) ? n : undefined;
+	};
 
-	const hasAnyFeeOverride =
+	const contactFirstName = trimToOptional(values.contactFirstName);
+	const contactLastName = trimToOptional(values.contactLastName);
+	const contactEmail = trimToOptional(values.contactEmail);
+	const contactPhone = trimToOptional(values.contactPhone);
+
+	const feePctRate = trimToOptionalNumber(values.feeOverride.pctRate);
+	const feePerTicket = trimToOptionalNumber(values.feeOverride.perTicket);
+	const feeFlat = trimToOptionalNumber(values.feeOverride.flat);
+	const hasAnyFee =
 		feePctRate !== undefined ||
 		feePerTicket !== undefined ||
 		feeFlat !== undefined;
 
 	return {
-		organizerid: values.organizerid.trim(),
-		name: values.name.trim(),
-		first_name: values.first_name.trim(),
-		last_name: values.last_name.trim(),
-		email: values.email.trim(),
+		organizerId: values.organizerId,
+		name: trimToOptional(values.name),
+		email: values.email,
 		status: values.status,
-		vat_number: values.vat_number.trim(),
-		tax_identification_number: values.tax_identification_number.trim(),
-		tax_rate: Number.isNaN(taxRate) ? 0 : taxRate,
-		iban: values.iban.trim(),
-		bic: values.bic.trim(),
-		billing_address: {
-			street_address: values.billing_street_address.trim(),
-			city: values.billing_city.trim(),
-			zip_code: values.billing_zip_code.trim(),
-			country: values.billing_country.trim(),
-		},
-		qonto_client_id: toOptional(values.qonto_client_id),
-		qonto_beneficiary_id: toOptional(values.qonto_beneficiary_id),
-		fee_override: hasAnyFeeOverride
+		vatNumber: trimToOptional(values.vatNumber),
+		taxIdentificationNumber: trimToOptional(values.taxIdentificationNumber),
+		taxRate: Number(values.taxRate),
+		sepaBeneficiaryName: trimToOptional(values.sepaBeneficiaryName),
+		iban: trimToOptional(values.iban),
+		bic: trimToOptional(values.bic),
+		billingAddress: values.billingAddress,
+		sevdeskContactId: trimToOptional(values.sevdeskContactId),
+		qontoBeneficiaryId: trimToOptional(values.qontoBeneficiaryId),
+		contactPersons:
+			contactFirstName || contactLastName || contactEmail || contactPhone
+				? [
+						{
+							firstName: contactFirstName ?? "",
+							lastName: contactLastName ?? "",
+							email: contactEmail ?? "",
+							phone: contactPhone,
+						},
+					]
+				: undefined,
+		feeOverride: hasAnyFee
 			? {
-					pct_rate: feePctRate ?? 0,
-					per_ticket: Math.round(feePerTicket ?? 0),
+					pctRate: feePctRate ?? 0,
+					perTicket: Math.round(feePerTicket ?? 0),
 					flat: Math.round(feeFlat ?? 0),
 				}
 			: undefined,
 	};
-};
-
-export const formValuesToUpdateInput = (
-	values: OrganizerFormValues,
-): UpdateOrganizerInput => formValuesToCreateInput(values);
-
-interface FormFieldProps {
-	id: string;
-	label: string;
-	value: string;
-	onChange: (value: string) => void;
-	disabled?: boolean;
-	placeholder?: string;
-	type?: React.ComponentProps<typeof Input>["type"];
 }
 
-const FormField = ({
-	id,
+const normalizeTaxRateForForm = (
+	value: number,
+): OrganizerFormValues["taxRate"] => {
+	if (value <= 0) return "0";
+	if (value <= 0.07) return "0.07";
+	return "0.19";
+};
+
+export const defaultOrganizerFormValues = (): OrganizerFormValues => ({
+	organizerId: "org-",
+	name: "",
+	email: "",
+	status: "ACTIVE" as OrganizerStatus,
+	vatNumber: "",
+	taxIdentificationNumber: "",
+	taxRate: "0.19",
+	sepaBeneficiaryName: "",
+	iban: "",
+	bic: "",
+	billingAddress: { street: "", city: "", zipCode: "", country: "DE" },
+	sevdeskContactId: "",
+	qontoBeneficiaryId: "",
+	contactFirstName: "",
+	contactLastName: "",
+	contactEmail: "",
+	contactPhone: "",
+	feeOverride: { pctRate: "", perTicket: "", flat: "" },
+});
+
+export const organizerToFormValues = (
+	organizer: OrganizerRecord,
+): OrganizerFormValues => {
+	const c = organizer.contactPersons?.[0];
+	return {
+		organizerId: organizer.organizerId,
+		name: organizer.name ?? "",
+		email: organizer.email,
+		status: organizer.status ?? "ACTIVE",
+		vatNumber: organizer.vatNumber ?? "",
+		taxIdentificationNumber: organizer.taxIdentificationNumber ?? "",
+		taxRate: normalizeTaxRateForForm(organizer.taxRate),
+		sepaBeneficiaryName: organizer.sepaBeneficiaryName ?? "",
+		iban: organizer.iban ?? "",
+		bic: organizer.bic ?? "",
+		billingAddress: organizer.billingAddress,
+		sevdeskContactId: organizer.sevdeskContactId ?? "",
+		qontoBeneficiaryId: organizer.qontoBeneficiaryId ?? "",
+		contactFirstName: c?.firstName ?? "",
+		contactLastName: c?.lastName ?? "",
+		contactEmail: c?.email ?? "",
+		contactPhone: c?.phone ?? "",
+		feeOverride: {
+			pctRate:
+				organizer.feeOverride?.pctRate !== undefined
+					? String(organizer.feeOverride.pctRate)
+					: "",
+			perTicket:
+				organizer.feeOverride?.perTicket !== undefined
+					? String(organizer.feeOverride.perTicket)
+					: "",
+			flat:
+				organizer.feeOverride?.flat !== undefined
+					? String(organizer.feeOverride.flat)
+					: "",
+		},
+	};
+};
+
+interface OrganizerFormProps {
+	initialValues: OrganizerFormValues;
+	onSubmit: (values: CreateOrganizerInput) => void;
+	disabled?: boolean;
+	hideOrganizerId?: boolean;
+	formId: string;
+}
+
+export function OrganizerForm({
+	initialValues,
+	onSubmit,
+	disabled = false,
+	hideOrganizerId = false,
+	formId,
+}: Readonly<OrganizerFormProps>) {
+	const qontoBeneficiariesUrl =
+		"https://app.qonto.com/organizations/zunftick-gbr-9639/flows/sepa-transfer/beneficiaries";
+	const [submitError, setSubmitError] = useState<string | null>(null);
+	const form = useForm<OrganizerFormValues>({
+		resolver: zodResolver(OrganizerFormSchema),
+		defaultValues: initialValues,
+		values: initialValues,
+	});
+
+	const handleSubmit = form.handleSubmit((values) => {
+		setSubmitError(null);
+		const input = formToInput(values);
+		const parsed = CreateOrganizerInputSchema.safeParse(input);
+		if (!parsed.success) {
+			setSubmitError(
+				parsed.error.issues[0]?.message ??
+					"Bitte korrigiere die markierten Felder.",
+			);
+			return;
+		}
+		onSubmit(parsed.data);
+	});
+
+	const organizerIdValue = form.watch("organizerId");
+	const organizerIdInvalid =
+		organizerIdValue.trim().length > 0 &&
+		!organizerIdValue.trim().startsWith("org-");
+	const qontoBeneficiaryIdValue = form.watch("qontoBeneficiaryId")?.trim();
+	const sevdeskContactIdValue = form.watch("sevdeskContactId")?.trim();
+	const sevdeskContactUrl = sevdeskContactIdValue
+		? `https://my.sevdesk.de/crm/detail/id/${sevdeskContactIdValue}`
+		: null;
+
+	const taxRateOptions = useMemo(
+		() => [
+			{ label: "0%", value: "0" },
+			{ label: "7%", value: "0.07" },
+			{ label: "19%", value: "0.19" },
+		],
+		[],
+	);
+
+	return (
+		<form id={formId} onSubmit={handleSubmit}>
+			<FieldGroup className="max-h-[65vh] space-y-6 overflow-y-auto pr-1">
+				{!hideOrganizerId && (
+					<Controller
+						name="organizerId"
+						control={form.control}
+						render={({ field, fieldState }) => (
+							<Field data-invalid={fieldState.invalid}>
+								<FieldLabel htmlFor={field.name}>
+									Veranstalter ID (nicht veränderbar!)
+								</FieldLabel>
+								<Input
+									{...field}
+									id={field.name}
+									disabled={disabled}
+									placeholder="org-some-organizer"
+									aria-invalid={fieldState.invalid}
+								/>
+								{organizerIdInvalid && (
+									<p className="mt-1 text-red-600 text-xs">
+										Veranstalter ID muss mit &quot;org-&quot; beginnen
+									</p>
+								)}
+								{fieldState.invalid && (
+									<FieldError errors={[fieldState.error]} />
+								)}
+							</Field>
+						)}
+					/>
+				)}
+
+				<FieldGroup className="space-y-3">
+					<FieldLegend>Allgemeine Informationen</FieldLegend>
+					<div className="grid gap-4 md:grid-cols-2">
+						<FormInput
+							name="name"
+							label="Name des Veranstalters (optional)"
+							placeholder="Kulturverein e.V."
+							control={form.control}
+							disabled={disabled}
+						/>
+						<FormInput
+							name="email"
+							label="Email"
+							type="email"
+							control={form.control}
+							disabled={disabled}
+						/>
+					</div>
+				</FieldGroup>
+
+				<FieldGroup>
+					<FieldLegend>Ansprechpartner</FieldLegend>
+					<div className="grid gap-4 md:grid-cols-2">
+						<FormInput
+							name="contactFirstName"
+							label="Vorname"
+							control={form.control}
+							disabled={disabled}
+						/>
+						<FormInput
+							name="contactLastName"
+							label="Nachname"
+							control={form.control}
+							disabled={disabled}
+						/>
+						<FormInput
+							name="contactEmail"
+							label="Email"
+							type="email"
+							control={form.control}
+							disabled={disabled}
+						/>
+						<FormInput
+							name="contactPhone"
+							label="Telefon"
+							control={form.control}
+							disabled={disabled}
+						/>
+					</div>
+				</FieldGroup>
+
+				<FieldSeparator />
+
+				<FieldGroup>
+					<FieldLegend>Steuer und Auszahlung</FieldLegend>
+					<div className="grid gap-4 md:grid-cols-2">
+						<FormInput
+							name="vatNumber"
+							label="Umsatzsteuer-Id"
+							control={form.control}
+							disabled={disabled}
+						/>
+						<FormInput
+							name="taxIdentificationNumber"
+							label="Steuernummer"
+							control={form.control}
+							disabled={disabled}
+						/>
+						<Controller
+							name="taxRate"
+							control={form.control}
+							render={({ field, fieldState }) => (
+								<Field data-invalid={fieldState.invalid}>
+									<FieldLabel htmlFor={field.name}>Steuersatz</FieldLabel>
+									<select
+										id={field.name}
+										disabled={disabled}
+										className="block h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
+										value={field.value}
+										onChange={field.onChange}
+										onBlur={field.onBlur}
+									>
+										{taxRateOptions.map((option) => (
+											<option key={option.value} value={option.value}>
+												{option.label}
+											</option>
+										))}
+									</select>
+									{fieldState.invalid && (
+										<FieldError errors={[fieldState.error]} />
+									)}
+								</Field>
+							)}
+						/>
+						<FormInput
+							name="sepaBeneficiaryName"
+							label="SEPA Begünstigter"
+							control={form.control}
+							disabled={disabled}
+						/>
+						<FormInput
+							name="iban"
+							label="IBAN"
+							control={form.control}
+							disabled={disabled}
+						/>
+						<FormInput
+							name="bic"
+							label="BIC"
+							control={form.control}
+							disabled={disabled}
+						/>
+					</div>
+				</FieldGroup>
+
+				<FieldSeparator />
+
+				<FieldGroup>
+					<FieldLegend>Rechnungsanschrift</FieldLegend>
+					<div className="grid gap-4 md:grid-cols-2">
+						<FormInput
+							name="billingAddress.street"
+							label="Straße und Hausnummer"
+							control={form.control}
+							disabled={disabled}
+						/>
+						<FormInput
+							name="billingAddress.zipCode"
+							label="Postleitzahl"
+							control={form.control}
+							disabled={disabled}
+						/>
+						<FormInput
+							name="billingAddress.city"
+							label="Stadt"
+							control={form.control}
+							disabled={disabled}
+						/>
+						<FormInput
+							name="billingAddress.country"
+							label="Land"
+							placeholder="DE"
+							control={form.control}
+							disabled={disabled}
+						/>
+					</div>
+				</FieldGroup>
+
+				<FieldSeparator />
+
+				<FieldGroup>
+					<FieldLegend>Sonderkonditionen (optional)</FieldLegend>
+					<div className="grid gap-4 md:grid-cols-3">
+						<FormInput
+							name="feeOverride.pctRate"
+							label="Percent rate"
+							type="number"
+							placeholder="0.1"
+							control={form.control}
+							disabled={disabled}
+						/>
+						<FormInput
+							name="feeOverride.perTicket"
+							label="Per ticket (cents)"
+							type="number"
+							placeholder="100"
+							control={form.control}
+							disabled={disabled}
+						/>
+						<FormInput
+							name="feeOverride.flat"
+							label="Flat fee (cents)"
+							type="number"
+							placeholder="5000"
+							control={form.control}
+							disabled={disabled}
+						/>
+					</div>
+				</FieldGroup>
+
+				<FieldSeparator />
+
+				<FieldGroup>
+					<FieldLegend>Systemreferenzen (automatisch generiert)</FieldLegend>
+					<div className="grid gap-4 md:grid-cols-3">
+						<Controller
+							name="qontoBeneficiaryId"
+							control={form.control}
+							render={({ field, fieldState }) => (
+								<Field data-invalid={fieldState.invalid}>
+									<FieldLabel htmlFor={field.name}>
+										Qonto beneficiary ID
+									</FieldLabel>
+									<Input
+										{...field}
+										id={field.name}
+										disabled={disabled}
+										aria-invalid={fieldState.invalid}
+									/>
+									{qontoBeneficiaryIdValue && (
+										<a
+											href={qontoBeneficiariesUrl}
+											target="_blank"
+											rel="noreferrer"
+											className="mt-1 inline-block text-blue-600 text-xs hover:underline"
+										>
+											Open in Qonto beneficiaries
+										</a>
+									)}
+									{fieldState.invalid && (
+										<FieldError errors={[fieldState.error]} />
+									)}
+								</Field>
+							)}
+						/>
+						<Controller
+							name="sevdeskContactId"
+							control={form.control}
+							render={({ field, fieldState }) => (
+								<Field data-invalid={fieldState.invalid}>
+									<FieldLabel htmlFor={field.name}>
+										sevdesk contact ID
+									</FieldLabel>
+									<Input
+										{...field}
+										id={field.name}
+										disabled={disabled}
+										aria-invalid={fieldState.invalid}
+									/>
+									{sevdeskContactUrl && (
+										<a
+											href={sevdeskContactUrl}
+											target="_blank"
+											rel="noreferrer"
+											className="mt-1 inline-block text-blue-600 text-xs hover:underline"
+										>
+											Open in sevdesk
+										</a>
+									)}
+									{fieldState.invalid && (
+										<FieldError errors={[fieldState.error]} />
+									)}
+								</Field>
+							)}
+						/>
+					</div>
+				</FieldGroup>
+
+				{submitError && <p className="text-red-600 text-sm">{submitError}</p>}
+			</FieldGroup>
+		</form>
+	);
+}
+
+/** Generic Controller-based input field following shadcn Field/FieldError pattern. */
+function FormInput({
+	name,
 	label,
-	value,
-	onChange,
+	control,
 	disabled,
 	placeholder,
 	type,
-}: Readonly<FormFieldProps>) => (
-	<Field>
-		<FieldLabel htmlFor={id}>{label}</FieldLabel>
-		<Input
-			id={id}
-			type={type}
-			value={value}
-			disabled={disabled}
-			onChange={(event) => onChange(event.target.value)}
-			placeholder={placeholder}
-		/>
-	</Field>
-);
-
-const SectionTitle = ({ title }: Readonly<{ title: string }>) => (
-	<h3 className="text-sm">{title}</h3>
-);
-
-export function OrganizerForm({
-	values,
-	onChange,
-	disabled = false,
-	hideOrganizerId = false,
-}: Readonly<OrganizerFormProps>) {
-	const setField = <K extends keyof OrganizerFormValues>(
-		key: K,
-		value: OrganizerFormValues[K],
-	) => {
-		onChange({
-			...values,
-			[key]: value,
-		});
-	};
-
-	const organizerIdInvalid =
-		values.organizerid.trim().length > 0 &&
-		!values.organizerid.trim().startsWith("org-");
-
+}: {
+	name: string;
+	label: string;
+	control: ReturnType<typeof useForm<OrganizerFormValues>>["control"];
+	disabled?: boolean;
+	placeholder?: string;
+	type?: React.ComponentProps<typeof Input>["type"];
+}) {
 	return (
-		<div className="max-h-[65vh] space-y-6 overflow-y-auto pr-1">
-			{!hideOrganizerId && (
-				<Field>
-					<FieldLabel htmlFor="organizerid">Veranstalter ID</FieldLabel>
+		<Controller
+			name={name as keyof OrganizerFormValues}
+			control={control}
+			render={({ field, fieldState }) => (
+				<Field data-invalid={fieldState.invalid}>
+					<FieldLabel htmlFor={field.name}>{label}</FieldLabel>
 					<Input
-						id="organizerid"
-						value={values.organizerid}
+						{...field}
+						value={field.value as string}
+						id={field.name}
+						type={type}
 						disabled={disabled}
-						onChange={(event) => setField("organizerid", event.target.value)}
-						placeholder="org-some-organizer"
+						placeholder={placeholder}
+						aria-invalid={fieldState.invalid}
 					/>
-					{organizerIdInvalid && (
-						<p className="mt-1 text-red-600 text-xs">
-							Veranstalter ID must start with "org-"
-						</p>
-					)}
+					{fieldState.invalid && <FieldError errors={[fieldState.error]} />}
 				</Field>
 			)}
-
-			<div className="space-y-3">
-				<SectionTitle title="Veranstalter" />
-				<div className="grid gap-4 md:grid-cols-2">
-					<FormField
-						id="organizer-name"
-						label="Name"
-						value={values.name}
-						disabled={disabled}
-						onChange={(value) => setField("name", value)}
-						placeholder="Muster Event GmbH"
-					/>
-					<FormField
-						id="organizer-first-name"
-						label="First name"
-						value={values.first_name}
-						disabled={disabled}
-						onChange={(value) => setField("first_name", value)}
-					/>
-					<FormField
-						id="organizer-last-name"
-						label="Last name"
-						value={values.last_name}
-						disabled={disabled}
-						onChange={(value) => setField("last_name", value)}
-					/>
-					<FormField
-						id="organizer-email"
-						label="Email"
-						type="email"
-						value={values.email}
-						disabled={disabled}
-						onChange={(value) => setField("email", value)}
-					/>
-					<Field>
-						<FieldLabel htmlFor="organizer-status">Status</FieldLabel>
-						<select
-							id="organizer-status"
-							value={values.status}
-							disabled={disabled}
-							onChange={(event) =>
-								setField("status", event.target.value as OrganizerStatus)
-							}
-							className="h-8 w-full rounded-md border border-input bg-background px-3 text-sm"
-						>
-							<option value="ACTIVE">ACTIVE</option>
-							<option value="INACTIVE">INACTIVE</option>
-						</select>
-					</Field>
-				</div>
-			</div>
-
-			<div className="space-y-3">
-				<SectionTitle title="Tax and payout" />
-				<div className="grid gap-4 md:grid-cols-2">
-					<FormField
-						id="organizer-vat-number"
-						label="VAT number"
-						value={values.vat_number}
-						disabled={disabled}
-						onChange={(value) => setField("vat_number", value)}
-					/>
-					<FormField
-						id="organizer-tax-identification-number"
-						label="Tax identification number"
-						value={values.tax_identification_number}
-						disabled={disabled}
-						onChange={(value) => setField("tax_identification_number", value)}
-					/>
-					<FormField
-						id="organizer-tax-rate"
-						label="Tax rate (%)"
-						type="number"
-						value={values.tax_rate}
-						disabled={disabled}
-						onChange={(value) => setField("tax_rate", value)}
-					/>
-					<FormField
-						id="organizer-iban"
-						label="IBAN"
-						value={values.iban}
-						disabled={disabled}
-						onChange={(value) => setField("iban", value)}
-					/>
-					<FormField
-						id="organizer-bic"
-						label="BIC"
-						value={values.bic}
-						disabled={disabled}
-						onChange={(value) => setField("bic", value)}
-					/>
-					<FormField
-						id="organizer-qonto-client-id"
-						label="Qonto client ID"
-						value={values.qonto_client_id}
-						disabled={disabled}
-						onChange={(value) => setField("qonto_client_id", value)}
-					/>
-					<FormField
-						id="organizer-qonto-beneficiary-id"
-						label="Qonto beneficiary ID"
-						value={values.qonto_beneficiary_id}
-						disabled={disabled}
-						onChange={(value) => setField("qonto_beneficiary_id", value)}
-					/>
-				</div>
-			</div>
-
-			<div className="space-y-3">
-				<SectionTitle title="Billing address" />
-				<div className="grid gap-4 md:grid-cols-2">
-					<FormField
-						id="organizer-billing-street"
-						label="Street"
-						value={values.billing_street_address}
-						disabled={disabled}
-						onChange={(value) => setField("billing_street_address", value)}
-					/>
-					<FormField
-						id="organizer-billing-city"
-						label="City"
-						value={values.billing_city}
-						disabled={disabled}
-						onChange={(value) => setField("billing_city", value)}
-					/>
-					<FormField
-						id="organizer-billing-zip"
-						label="ZIP code"
-						value={values.billing_zip_code}
-						disabled={disabled}
-						onChange={(value) => setField("billing_zip_code", value)}
-					/>
-					<FormField
-						id="organizer-billing-country"
-						label="Country"
-						value={values.billing_country}
-						disabled={disabled}
-						onChange={(value) => setField("billing_country", value)}
-						placeholder="DE"
-					/>
-				</div>
-			</div>
-
-			<div className="space-y-3">
-				<SectionTitle title="Fee override (optional)" />
-				<div className="grid gap-4 md:grid-cols-3">
-					<FormField
-						id="organizer-fee-pct-rate"
-						label="Percent rate"
-						type="number"
-						value={values.fee_pct_rate}
-						disabled={disabled}
-						onChange={(value) => setField("fee_pct_rate", value)}
-						placeholder="0.1"
-					/>
-					<FormField
-						id="organizer-fee-per-ticket"
-						label="Per ticket (cents)"
-						type="number"
-						value={values.fee_per_ticket}
-						disabled={disabled}
-						onChange={(value) => setField("fee_per_ticket", value)}
-						placeholder="100"
-					/>
-					<FormField
-						id="organizer-fee-flat"
-						label="Flat fee (cents)"
-						type="number"
-						value={values.fee_flat}
-						disabled={disabled}
-						onChange={(value) => setField("fee_flat", value)}
-						placeholder="5000"
-					/>
-				</div>
-			</div>
-		</div>
+		/>
 	);
 }

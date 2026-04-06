@@ -8,9 +8,6 @@ import {
 	ScanCommand,
 	UpdateCommand,
 } from "@aws-sdk/lib-dynamodb";
-import env from "@/env";
-import { getDynamoDBDocumentClient } from "@/lib/dynamodb/client";
-import { AppError } from "@/lib/errors";
 import {
 	type CreateOrganizerInput,
 	CreateOrganizerInputSchema,
@@ -18,7 +15,10 @@ import {
 	OrganizerRecordSchema,
 	type UpdateOrganizerInput,
 	UpdateOrganizerInputSchema,
-} from "@/types/organizers";
+} from "@ticketing-billing/types/ddb";
+import env from "@/env";
+import { getDynamoDBDocumentClient } from "@/lib/dynamodb/client";
+import { AppError } from "@/lib/errors";
 
 export class OrganizersService {
 	private readonly tableName = env.DYNAMODB_ORGANIZERS_TABLE;
@@ -44,15 +44,15 @@ export class OrganizersService {
 			lastEvaluatedKey = response.LastEvaluatedKey;
 		} while (lastEvaluatedKey);
 
-		results.sort((a, b) => b.updated_at.localeCompare(a.updated_at));
+		results.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
 		return results;
 	}
 
-	async getOrganizer(organizerid: string) {
+	async getOrganizer(organizerId: string) {
 		const response = await this.client.send(
 			new GetCommand({
 				TableName: this.tableName,
-				Key: { organizerid },
+				Key: { organizerId },
 			}),
 		);
 
@@ -69,8 +69,8 @@ export class OrganizersService {
 
 		const item: OrganizerRecord = {
 			...parsed,
-			created_at: now,
-			updated_at: now,
+			createdAt: now,
+			updatedAt: now,
 		};
 
 		try {
@@ -78,7 +78,7 @@ export class OrganizersService {
 				new PutCommand({
 					TableName: this.tableName,
 					Item: item,
-					ConditionExpression: "attribute_not_exists(organizerid)",
+					ConditionExpression: "attribute_not_exists(organizerId)",
 				}),
 			);
 		} catch (error) {
@@ -101,18 +101,22 @@ export class OrganizersService {
 
 	async updateOrganizer(input: UpdateOrganizerInput) {
 		const parsed = UpdateOrganizerInputSchema.parse(input);
-		const { organizerid, ...patch } = parsed;
+		const { organizerId, ...patch } = parsed;
 		const now = new Date().toISOString();
 
 		const expressionNames: Record<string, string> = {
-			"#updated_at": "updated_at",
+			"#updatedAt": "updatedAt",
 		};
 		const expressionValues: Record<string, unknown> = {
-			":updated_at": now,
+			":updatedAt": now,
 		};
-		const updates: string[] = ["#updated_at = :updated_at"];
+		const updates: string[] = ["#updatedAt = :updatedAt"];
 
 		for (const [key, value] of Object.entries(patch)) {
+			if (value === undefined) {
+				continue;
+			}
+
 			expressionNames[`#${key}`] = key;
 			expressionValues[`:${key}`] = value;
 			updates.push(`#${key} = :${key}`);
@@ -122,11 +126,11 @@ export class OrganizersService {
 			const response = await this.client.send(
 				new UpdateCommand({
 					TableName: this.tableName,
-					Key: { organizerid },
+					Key: { organizerId },
 					UpdateExpression: `SET ${updates.join(", ")}`,
 					ExpressionAttributeNames: expressionNames,
 					ExpressionAttributeValues: expressionValues,
-					ConditionExpression: "attribute_exists(organizerid)",
+					ConditionExpression: "attribute_exists(organizerId)",
 					ReturnValues: "ALL_NEW",
 				}),
 			);

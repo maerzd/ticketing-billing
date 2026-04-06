@@ -1,5 +1,6 @@
 "use client";
 
+import type { QontoOrganization } from "@ticketing-billing/types/qonto/organization";
 import {
 	BanknoteArrowUp,
 	Building2,
@@ -20,7 +21,6 @@ import {
 	SidebarFooter,
 	SidebarRail,
 } from "@/components/ui/sidebar";
-import type { QontoOrganization } from "@/types/qonto/organization";
 
 interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
 	organization?: QontoOrganization;
@@ -59,11 +59,6 @@ export function AppSidebar({
 			icon: Store,
 		},
 		{
-			title: "Invoices",
-			url: "/banking/invoices",
-			icon: FileText,
-		},
-		{
 			title: "Transfers",
 			url: "/banking/transfers",
 			icon: BanknoteArrowUp,
@@ -72,11 +67,6 @@ export function AppSidebar({
 			title: "Beneficiaries",
 			url: "/banking/beneficiaries",
 			icon: ShieldUser,
-		},
-		{
-			title: "Clients",
-			url: "/banking/clients",
-			icon: Users,
 		},
 		{
 			title: "Veranstalter",
