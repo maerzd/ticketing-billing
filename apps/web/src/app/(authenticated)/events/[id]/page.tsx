@@ -29,7 +29,6 @@ export async function generateStaticParams(): Promise<PageParam[]> {
 
 export default async function Page({ params }: { params: Promise<PageParam> }) {
 	const eventId = (await params).id;
-	const user = await withAuth();
 	const organizersService = new OrganizersService();
 	const [event, ticketSales, revenue, pos] = await Promise.all([
 		fetchEvent(eventId),
@@ -50,8 +49,7 @@ export default async function Page({ params }: { params: Promise<PageParam> }) {
 		return <NotFound />;
 	}
 
-	const [organizer, organizerRecord] = await Promise.all([
-		queryOrganizer(event.attributes?.organizerid, user.organizationId),
+	const [organizer] = await Promise.all([
 		event.attributes?.organizerid
 			? organizersService.getOrganizer(event.attributes.organizerid)
 			: Promise.resolve(null),
@@ -85,12 +83,11 @@ export default async function Page({ params }: { params: Promise<PageParam> }) {
 			<div className="my-8">
 				<h2 className="mt-8 font-semibold text-2xl">Abrechnung</h2>
 				<RevenueTable
+					event={event}
 					ticketAnalytics={ticketSales}
 					organizer={organizer}
 					revenue={revenue}
 					pos={pos}
-					eventStartDate={event.start}
-					organizerRecord={organizerRecord}
 				/>
 			</div>
 			<div className="my-8">

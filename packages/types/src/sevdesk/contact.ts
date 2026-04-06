@@ -2,7 +2,7 @@ import { z } from "zod";
 
 /** Shared inline reference used throughout sevdesk API payloads */
 export const SevdeskInputRefSchema = z.object({
-	id: z.number().int(),
+	id: z.string(),
 	objectName: z.string(),
 });
 

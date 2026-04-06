@@ -29,6 +29,11 @@ export class SevdeskClient {
 			}
 		}
 
+		if (method === "POST" && body) {
+			// For GET requests, include body parameters as query parameters
+			console.log("POST: ", JSON.stringify(body));
+		}
+
 		const response = await fetch(url.toString(), {
 			method,
 			headers: {

@@ -33,7 +33,7 @@ export class BillingDynamoStack extends cdk.Stack {
 				type: AttributeType.STRING,
 			},
 			sortKey: {
-				name: "eventid",
+				name: "eventId",
 				type: AttributeType.STRING,
 			},
 			billingMode: BillingMode.PAY_PER_REQUEST,

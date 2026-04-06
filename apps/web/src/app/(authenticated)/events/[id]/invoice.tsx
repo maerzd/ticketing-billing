@@ -1,4 +1,5 @@
 "use client";
+import type { VivenuEvent } from "@ticketing-billing/types";
 import type { OrganizerRecord } from "@ticketing-billing/types/ddb";
 import { Copy } from "lucide-react";
 import Link from "next/link";
@@ -93,25 +94,25 @@ function InvoiceTable({ invoiceData }: { invoiceData: InvoiceData }) {
 }
 
 export default function Invoice({
+	event,
 	totalRevenue,
 	ticketsCount,
+	organizer,
 	officialPos,
 	revenuePerPos,
 	eventTaxRate = 0,
 	setupFee = 25,
 	ticketCommissionRate = TICKET_COMMISSION_RATE,
-	eventStartDate,
-	organizerRecord,
 }: {
+	event: VivenuEvent;
 	totalRevenue: number;
 	ticketsCount: number;
+	organizer: OrganizerRecord | null;
 	eventTaxRate?: number;
 	setupFee?: number;
 	ticketCommissionRate?: number;
 	officialPos?: Set<string>;
 	revenuePerPos?: Record<string, number>;
-	eventStartDate?: string;
-	organizerRecord?: OrganizerRecord | null;
 }): React.ReactNode {
 	// Systemgebühr: 1€ pro verkauftem Ticket
 	const systemFee = ticketsCount * 1;
@@ -209,28 +210,34 @@ export default function Invoice({
 	const invoiceTextRef = useRef<HTMLDivElement>(null);
 	const [copied, setCopied] = useState(false);
 	const [showTooltip, setShowTooltip] = useState(false);
-	const [selectedClientId, setSelectedClientId] = useState(
-		organizerRecord?.sevdeskContactId ?? "",
-	);
 	const [isCreating, setIsCreating] = useState(false);
-	const organizer = organizerRecord ?? null;
 	const primaryContact = organizer?.contactPersons?.[0];
 	const handleCreateDraft = async () => {
-		if (!selectedClientId) return;
+		if (!organizer?.sevdeskContactId || !invoiceTextRef.current) return;
 
 		setIsCreating(true);
 		try {
 			const today = new Date();
 			const input: CreateInvoiceDraftInput = {
-				organizerContactId: Number(selectedClientId), // sevdesk contact ID
+				organizerContactId: organizer?.sevdeskContactId, // sevdesk contact ID
 				invoiceDate: today.toISOString().split("T")[0],
 				timeToPay: 14,
 				items: invoiceData.items.map((item) => ({
-					label: item.label,
+					name: item.label,
 					quantity: 1,
-					priceGross: item.value,
+					price: item.value,
 					taxRate: item.tax,
 				})),
+				header: "Rechnung Nr. [%RECHNUNGSNUMMER%]",
+				headText:
+					"<p>\n    Sehr geehrte Damen und Herren,\n</p>\n<p>\n    wir erlauben uns, von den Einnahmen Ihrer Veranstaltung unsere Gebühren abzuziehen und zahlen den Restbetrag an Sie aus. Im Folgenden finden Sie eine detaillierte Ausführung der einzelnen Positionen.\n</p>",
+				footText: invoiceTextRef.current.outerHTML,
+				addressName: organizer?.name,
+				addressStreet: organizer?.billingAddress?.street,
+				addressZip: organizer?.billingAddress?.zipCode,
+				addressCity: organizer?.billingAddress?.city,
+				addressCountry: organizer?.billingAddress?.country,
+				address: `${organizer?.name ?? ""}${organizer?.billingAddress?.street ?? ""}\n${organizer?.billingAddress?.zipCode ?? ""} ${organizer?.billingAddress?.city ?? ""}`,
 			};
 
 			const result = await createSevdeskInvoiceDraft(input);
@@ -244,7 +251,10 @@ export default function Invoice({
 				`Rechnungsentwurf erstellt: ${result.data.invoiceNumber ?? result.data.id}`,
 			);
 		} catch (error) {
-			toast.error("Ein unerwarteter Fehler ist aufgetreten");
+			toast.error(
+				"Ein unerwarteter Fehler ist aufgetreten: " +
+					(error instanceof Error ? error.message : "Unknown error"),
+			);
 			console.error(error);
 		} finally {
 			setIsCreating(false);
@@ -291,10 +301,7 @@ export default function Invoice({
 								{primaryContact?.email ?? organizer.email}
 							</p>
 						</div>
-						<Button
-							onClick={handleCreateDraft}
-							disabled={isCreating || !selectedClientId}
-						>
+						<Button onClick={handleCreateDraft} disabled={isCreating}>
 							{isCreating ? "Entwurf wird erstellt..." : "Entwurf erstellen"}
 						</Button>
 					</div>

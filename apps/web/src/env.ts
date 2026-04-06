@@ -25,20 +25,12 @@ const envSchema = z
 
 		SEVDESK_API_URL: z.string().url().default("https://my.sevdesk.de/api/v1"),
 		SEVDESK_API_TOKEN: z.string().min(1),
-		SEVDESK_CONTACT_CATEGORY_ID: z.coerce.number().int().positive().default(3),
-		SEVDESK_CONTACT_ADDRESS_CATEGORY_ID: z.coerce
-			.number()
-			.int()
-			.positive()
-			.default(43),
-		SEVDESK_COUNTRY_ID: z.coerce.number().int().positive().default(1),
-		SEVDESK_TAX_RULE_ID: z.coerce.number().int().positive().default(1),
-		SEVDESK_CONTACT_PERSON_ID: z.coerce
-			.number()
-			.int()
-			.positive()
-			.default(1469956),
-		SEVDESK_INVOICE_UNIT_ID: z.coerce.number().int().positive().default(1),
+		SEVDESK_CONTACT_CATEGORY_ID: z.coerce.string().default("3"),
+		SEVDESK_CONTACT_ADDRESS_CATEGORY_ID: z.coerce.string().default("43"),
+		SEVDESK_COUNTRY_ID: z.coerce.string().default("1"),
+		SEVDESK_TAX_RULE_ID: z.coerce.string().default("1"),
+		SEVDESK_CONTACT_PERSON_ID: z.coerce.string().default("1469956"),
+		SEVDESK_INVOICE_UNIT_ID: z.coerce.string().default("1"),
 	})
 	.superRefine((value, context) => {
 		if (value.QONTO_SANDBOX && !value.QONTO_STAGING_TOKEN) {

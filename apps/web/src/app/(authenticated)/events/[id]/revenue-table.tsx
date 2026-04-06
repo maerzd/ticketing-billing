@@ -1,4 +1,5 @@
 "use client";
+import type { VivenuEvent } from "@ticketing-billing/types";
 import type { OrganizerRecord } from "@ticketing-billing/types/ddb";
 import type { PosDevice } from "@ticketing-billing/types/vivenu/pos";
 import type { RevenueResponse } from "@ticketing-billing/types/vivenu/revenue";
@@ -35,19 +36,17 @@ const calculateRevenuePerPosId = (
 };
 
 export default function RevenueTable({
+	event,
 	ticketAnalytics,
 	revenue,
 	pos,
 	organizer,
-	eventStartDate,
-	organizerRecord,
 }: {
+	event: VivenuEvent;
 	ticketAnalytics: TicketSales | null;
 	revenue: RevenueResponse | null;
 	pos: PosDevice[] | null;
-	organizer: OrganizerData | null;
-	eventStartDate: string;
-	organizerRecord?: OrganizerRecord | null;
+	organizer: OrganizerRecord | null;
 }) {
 	const revenuePerPos = calculateRevenuePerPosId(revenue);
 	const [setupFee, setSetupFee] = React.useState(25);
@@ -100,15 +99,16 @@ export default function RevenueTable({
 					}
 				/>
 			</div>
+
 			<Invoice
+				event={event}
 				totalRevenue={totalRevenue}
 				ticketsCount={ticketsCount}
 				officialPos={officialPos}
 				revenuePerPos={revenuePerPos}
 				eventTaxRate={eventTaxValue}
 				setupFee={setupFee}
-				eventStartDate={eventStartDate}
-				organizerRecord={organizerRecord}
+				organizer={organizer}
 			/>
 		</div>
 	);

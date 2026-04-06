@@ -40,6 +40,12 @@ export const SevdeskInvoiceSendTypeSchema = z.enum([
 	"VP", // Postal
 ]);
 
+/** Sevdesk API returns booleans as "0"/"1" strings in some endpoints */
+const sevdeskApiBoolean = z.preprocess(
+	(val) => (typeof val === "string" ? val === "1" || val === "true" : val),
+	z.boolean().nullable().optional(),
+);
+
 /**
  * Payload for POST /Invoice (or as part of saveInvoice factory).
  *
@@ -57,6 +63,10 @@ export const SevdeskInvoiceCreateSchema = z.object({
 	 * Retrieve via GET /SevUser to find your account's user id.
 	 */
 	contactPerson: SevdeskInputRefSchema,
+	addressName: z.string().nullable().optional(),
+	addressStreet: z.string().nullable().optional(),
+	addressZip: z.string().nullable().optional(),
+	addressCity: z.string().nullable().optional(),
 	addressCountry: SevdeskInputRefSchema,
 	status: SevdeskInvoiceStatusSchema,
 	/** No discount → 0 */
@@ -83,7 +93,7 @@ export const SevdeskInvoiceCreateSchema = z.object({
 	sendType: SevdeskInvoiceSendTypeSchema.nullable().optional(),
 	propertyIsEInvoice: z.boolean().nullable().optional(),
 	/** Required for id field if updating existing invoice */
-	id: z.number().int().nullable().optional(),
+	id: z.string().nullable().optional(),
 });
 
 export const SevdeskInvoiceResponseSchema = z.object({
@@ -91,8 +101,8 @@ export const SevdeskInvoiceResponseSchema = z.object({
 	objectName: z.literal("Invoice"),
 	invoiceNumber: z.string().nullable().optional(),
 	contact: SevdeskResponseRefSchema,
-	create: z.string().datetime().optional(),
-	update: z.string().datetime().optional(),
+	create: z.string().nullable().optional(),
+	update: z.string().nullable().optional(),
 	invoiceDate: z.string().nullable().optional(),
 	header: z.string().nullable().optional(),
 	headText: z.string().nullable().optional(),
@@ -100,7 +110,7 @@ export const SevdeskInvoiceResponseSchema = z.object({
 	timeToPay: z.string().nullable().optional(),
 	discount: z.string().nullable().optional(),
 	status: SevdeskInvoiceStatusSchema,
-	smallSettlement: z.boolean().nullable().optional(),
+	smallSettlement: sevdeskApiBoolean,
 	contactPerson: SevdeskResponseRefSchema,
 	taxRate: z.string().nullable().optional(),
 	taxText: z.string().nullable().optional(),
@@ -111,8 +121,8 @@ export const SevdeskInvoiceResponseSchema = z.object({
 	sumTax: z.string().nullable().optional(),
 	sumGross: z.string().nullable().optional(),
 	paidAmount: z.number().nullable().optional(),
-	showNet: z.boolean().nullable().optional(),
-	sendType: SevdeskInvoiceSendTypeSchema.nullable().optional(),
+	showNet: sevdeskApiBoolean,
+	sendType: SevdeskInvoiceSendTypeSchema.nullable().optional().catch(null),
 	address: z.string().nullable().optional(),
 	customerInternalNote: z.string().nullable().optional(),
 	deliveryDate: z.string().nullable().optional(),
@@ -125,9 +135,28 @@ export const SevdeskCreateInvoiceResponseSchema = z.object({
 	}),
 });
 
+export const SevdeskNextInvoiceNumberResponseSchema = z.object({
+	objects: z.object({
+		id: z.string(),
+		objectName: z.literal("SevSequence"),
+		forObject: z.string(),
+		format: z.string(),
+		nextSequence: z.string(),
+		type: z.string(),
+		additionalInformation: z.unknown().nullable().optional(),
+		create: z.string().nullable().optional(),
+		update: z.string().nullable().optional(),
+		sevClient: z.object({ id: z.string(), objectName: z.string() }).optional(),
+	}),
+});
+
 export type SevdeskInvoiceStatus = z.infer<typeof SevdeskInvoiceStatusSchema>;
 export type SevdeskInvoiceType = z.infer<typeof SevdeskInvoiceTypeSchema>;
 export type SevdeskTaxType = z.infer<typeof SevdeskTaxTypeSchema>;
 export type SevdeskTaxRule = z.infer<typeof SevdeskTaxRuleSchema>;
 export type SevdeskInvoiceCreate = z.infer<typeof SevdeskInvoiceCreateSchema>;
 export type SevdeskInvoice = z.infer<typeof SevdeskInvoiceResponseSchema>;
+export type SevdeskCreateInvoiceResponse = z.infer<typeof SevdeskCreateInvoiceResponseSchema>;
+export type SevdeskNextInvoiceNumberResponse = z.infer<
+	typeof SevdeskNextInvoiceNumberResponseSchema
+>;

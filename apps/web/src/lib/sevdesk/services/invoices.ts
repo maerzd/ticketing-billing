@@ -3,6 +3,7 @@ import {
 	type SevdeskInvoice,
 	SevdeskInvoiceCreateSchema,
 	SevdeskInvoicePosCreateSchema,
+	SevdeskNextInvoiceNumberResponseSchema,
 	SevdeskSaveInvoiceResponseSchema,
 	SevdeskSaveInvoiceSchema,
 } from "@ticketing-billing/types/sevdesk";
@@ -12,33 +13,37 @@ import type { SevdeskClient } from "@/lib/sevdesk/client";
 
 export interface CreateInvoiceDraftInput {
 	/** Sevdesk contact ID for the organizer/customer */
-	organizerContactId: number;
+	organizerContactId: string;
 	/** Invoice date (ISO date string, e.g., "2025-03-29") */
 	invoiceDate: string;
 	/** Days until payment due (optional) */
 	timeToPay?: number;
 	/** Invoice line items */
 	items: Array<{
-		label: string;
+		name: string;
 		quantity: number;
-		priceGross: number;
-
+		price: number;
 		taxRate: number;
 	}>;
-	/** Optional footer text */
+	header?: string;
+	headText?: string;
 	footText?: string;
+	addressName?: string;
+	addressStreet?: string;
+	addressZip?: string;
+	addressCity?: string;
+	addressCountry?: string;
+	address?: string;
 }
 
 export class SevdeskInvoicesService {
-	constructor(private readonly client: SevdeskClient) {}
+	constructor(private readonly client: SevdeskClient) { }
 
-	private toNumericId(id: string | number, label: string) {
-		const numeric = typeof id === "string" ? Number.parseInt(id, 10) : id;
-		if (!Number.isFinite(numeric)) {
-			throw new AppError(`Invalid sevdesk ${label} id: ${id}`, 500);
+	private toPercentageString(value: number) {
+		if (value < 0 || value > 100) {
+			throw new AppError(`Invalid percentage value: ${value}`, 400);
 		}
-
-		return numeric;
+		return (value * 100).toFixed(1);
 	}
 
 	private countryRef() {
@@ -72,7 +77,7 @@ export class SevdeskInvoicesService {
 	private unitRef() {
 		return SevdeskInputRefSchema.parse({
 			id: env.SEVDESK_INVOICE_UNIT_ID,
-			objectName: "Unit",
+			objectName: "Unity",
 		});
 	}
 
@@ -80,9 +85,18 @@ export class SevdeskInvoicesService {
 		input: CreateInvoiceDraftInput,
 	): Promise<SevdeskInvoice> {
 		const contactRef = SevdeskInputRefSchema.parse({
-			id: this.toNumericId(input.organizerContactId, "organizer contact"),
+			id: input.organizerContactId,
 			objectName: "Contact",
 		});
+
+		// fetch next invoice number.
+		const invoiceNumber = await this.client
+			.get(
+				"/SevSequence/Factory/getByType",
+				SevdeskNextInvoiceNumberResponseSchema,
+				{ objectType: "Invoice", type: "RE" },
+			)
+			.then((res) => res.objects.nextSequence);
 
 		// Build invoice positions
 		const invoicePositions = input.items.map((item) =>
@@ -90,30 +104,40 @@ export class SevdeskInvoicesService {
 				objectName: "InvoicePos",
 				mapAll: true,
 				quantity: item.quantity,
-				taxRate: item.taxRate,
+				taxRate: this.toPercentageString(item.taxRate),
 				unity: this.unitRef(),
-				name: item.label,
-				priceGross: item.priceGross,
+				name: item.name,
+				price: item.price,
 			}),
 		);
 
 		// Build invoice header
 		const invoice = SevdeskInvoiceCreateSchema.parse({
+			invoiceNumber: invoiceNumber,
 			objectName: "Invoice",
 			mapAll: true,
 			invoiceDate: input.invoiceDate,
 			contact: contactRef,
 			contactPerson: this.contactPersonRef(),
-			addressCountry: this.countryRef(),
 			status: "100", // Draft
 			discount: 0,
 			taxRule: this.taxRuleRef(),
-			taxText: "MwSt.",
+			taxText: "Mwst.",
 			taxType: "default",
 			invoiceType: "RE", // Standard invoice
 			currency: "EUR",
 			timeToPay: input.timeToPay,
+			header: input.header,
+			headText: input.headText,
 			footText: input.footText,
+			addressName: input.addressName,
+			addressStreet: input.addressStreet,
+			addressZip: input.addressZip,
+			addressCity: input.addressCity,
+			addressCountry: this.countryRef(),
+			address: input.address,
+
+			// Additional fields can be added as needed
 		});
 
 		// Build combined save payload
