@@ -26,9 +26,8 @@ export class VivenuAttributesService {
 			throw new AppError("Organizer ID must not be empty", 400);
 		}
 
-		const response = await this.client.apiGet<VivenuAttributesResponse>(
-			"/attributes",
-		);
+		const response =
+			await this.client.apiGet<VivenuAttributesResponse>("/attributes");
 
 		if (!Array.isArray(response?.docs)) {
 			throw new AppError(

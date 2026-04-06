@@ -15,29 +15,15 @@ import env from "@/env";
 import { AppError } from "@/lib/errors";
 import type { SevdeskClient } from "@/lib/sevdesk/client";
 
-export const CreateOrganizerContactInputSchema = z
-	.object({
-		name: z.string().min(1).optional(),
-		firstName: z.string().min(1).optional(),
-		lastName: z.string().min(1).optional(),
-		vatNumber: z.string().min(1).optional(),
-		taxIdentificationNumber: z.string().min(1).optional(),
-		iban: z.string().min(1).optional(),
-		bic: z.string().min(1).optional(),
-		billingAddress: OrganizerBillingAddressSchema,
-		contactPersons: z.array(OrganizerContactPersonSchema).optional(),
-	})
-	.refine(
-		(value) =>
-			Boolean(value.name?.trim()) ||
-			(Boolean(value.firstName?.trim()) && Boolean(value.lastName?.trim())) ||
-			(Boolean(value.billingAddress.firstName?.trim()) &&
-				Boolean(value.billingAddress.lastName?.trim())),
-		{
-			message:
-				"Sevdesk contact requires either a company name or first/last name",
-		},
-	);
+export const CreateOrganizerContactInputSchema = z.object({
+	name: z.string().min(1),
+	vatNumber: z.string().min(1).optional(),
+	taxIdentificationNumber: z.string().min(1).optional(),
+	iban: z.string().min(1).optional(),
+	bic: z.string().min(1).optional(),
+	billingAddress: OrganizerBillingAddressSchema,
+	contactPersons: z.array(OrganizerContactPersonSchema).optional(),
+});
 
 interface CreateOrganizerContactInput {
 	name?: string;
@@ -55,31 +41,6 @@ interface UpsertOrganizerContactResult {
 	contactId: string;
 	contactAddressId: string;
 }
-
-const SevdeskEmbeddedContactAddressSchema = z.object({
-	id: z.string(),
-	contact: SevdeskInputRefSchema.or(SevdeskInputRefSchema.partial()).optional(),
-});
-
-const SevdeskContactWithAddressesResponseSchema = z.object({
-	objects: z.object({
-		id: z.string(),
-		addresses: z
-			.union([
-				z.array(SevdeskEmbeddedContactAddressSchema),
-				SevdeskEmbeddedContactAddressSchema,
-				z.null(),
-			])
-			.optional()
-			.transform((value) => {
-				if (!value) {
-					return [];
-				}
-
-				return Array.isArray(value) ? value : [value];
-			}),
-	}),
-});
 
 export class SevdeskContactsService {
 	constructor(private readonly client: SevdeskClient) { }
@@ -114,45 +75,13 @@ export class SevdeskContactsService {
 		});
 	}
 
-	private async findAddressByContactId(sevdeskContactId: string) {
-		const contactWithAddresses = await this.client
-			.get(
-				`/Contact/${sevdeskContactId}`,
-				SevdeskContactWithAddressesResponseSchema,
-				{ embed: "addresses" },
-			)
-			.then((response) => response.objects)
-			.catch(() => null);
-
-		if (contactWithAddresses) {
-			const embeddedMatch = contactWithAddresses.addresses.find((address) => {
-				const embeddedContactId =
-					typeof address.contact?.id === "number"
-						? String(address.contact.id)
-						: address.contact?.id;
-
-				return !embeddedContactId || embeddedContactId === sevdeskContactId;
-			});
-
-			if (embeddedMatch) {
-				return embeddedMatch;
-			}
-		}
-
-		return null;
-	}
-
 	async createOrganizerWithContacts(
 		input: CreateOrganizerContactInput,
 	): Promise<UpsertOrganizerContactResult> {
 		const parsedInput = CreateOrganizerContactInputSchema.parse(input);
 
-		const companyName =
-			parsedInput.name?.trim() ||
-			`${parsedInput.firstName ?? parsedInput.billingAddress.firstName} ${parsedInput.lastName ?? parsedInput.billingAddress.lastName}`.trim();
-
 		const companyPayload = SevdeskContactCreateSchema.parse({
-			name: companyName,
+			name: parsedInput.name,
 			category: this.categoryRef(),
 			status: 1000,
 			vatNumber: parsedInput.vatNumber,
@@ -170,19 +99,17 @@ export class SevdeskContactsService {
 			objectName: "Contact",
 		});
 
-		const address = await this.client.post(
-			"/ContactAddress",
-			SevdeskCreateContactAddressResponseSchema,
-			{
+		const address = await this.client
+			.post("/ContactAddress", SevdeskCreateContactAddressResponseSchema, {
 				contact: contactRef,
 				country: this.countryRef(),
 				category: this.addressCategoryRef(),
 				street: parsedInput.billingAddress.street,
 				zip: parsedInput.billingAddress.zipCode,
 				city: parsedInput.billingAddress.city,
-				name: companyName,
-			},
-		).then((response) => response.objects);
+				// name: parsedInput.ContactPersons[0].firstName ... Here we could potentially use the firstName and lastName of the contact person ("z. Hd.")
+			})
+			.then((response) => response.objects);
 
 		for (const person of parsedInput.contactPersons ?? []) {
 			const personPayload = SevdeskContactCreateSchema.parse({
@@ -218,12 +145,8 @@ export class SevdeskContactsService {
 	): Promise<UpsertOrganizerContactResult> {
 		const parsedInput = CreateOrganizerContactInputSchema.parse(input);
 
-		const companyName =
-			parsedInput.name?.trim() ||
-			`${parsedInput.firstName ?? parsedInput.billingAddress.firstName} ${parsedInput.lastName ?? parsedInput.billingAddress.lastName}`.trim();
-
 		const companyPayload = SevdeskContactCreateSchema.parse({
-			name: companyName,
+			name: parsedInput.name,
 			category: this.categoryRef(),
 			status: 1000,
 			vatNumber: parsedInput.vatNumber,
@@ -245,9 +168,22 @@ export class SevdeskContactsService {
 			objectName: "Contact",
 		});
 
-		let addressId = (
-			await this.findAddressByContactId(sevdeskContactId)
-		)?.id;
+		let addressId = await this.client
+			.get(
+				`/Contact/${sevdeskContactId}`,
+				z.object({
+					objects: z.array(
+						z.object({
+							addresses: z
+								.array(z.object({ id: z.string() }))
+								.optional()
+								.default([]),
+						}),
+					),
+				}),
+				{ embed: "addresses" },
+			)
+			.then((response) => response.objects[0]?.addresses[0]?.id ?? null);
 
 		if (addressId) {
 			await this.client.put(
@@ -260,25 +196,67 @@ export class SevdeskContactsService {
 					street: parsedInput.billingAddress.street,
 					zip: parsedInput.billingAddress.zipCode,
 					city: parsedInput.billingAddress.city,
-					name: companyName,
 				},
 			);
 		} else {
-			const createdAddress = await this.client.post(
-				"/ContactAddress",
-				SevdeskCreateContactAddressResponseSchema,
-				{
+			const createdAddress = await this.client
+				.post("/ContactAddress", SevdeskCreateContactAddressResponseSchema, {
 					contact: contactRef,
 					country: this.countryRef(),
 					category: this.addressCategoryRef(),
 					street: parsedInput.billingAddress.street,
 					zip: parsedInput.billingAddress.zipCode,
 					city: parsedInput.billingAddress.city,
-					name: companyName,
-				},
-			).then((response) => response.objects);
+				})
+				.then((response) => response.objects);
 
 			addressId = createdAddress.id;
+		}
+
+		const person = parsedInput.contactPersons?.[0];
+
+		const existingChildContactId = await this.client
+			.get(
+				"/Contact",
+				z.object({
+					objects: z.array(z.object({ id: z.string() })),
+				}),
+				{
+					"parent[id]": this.toNumericId(sevdeskContactId, "contact"),
+					"parent[objectName]": "Contact",
+					limit: 1,
+				},
+			)
+			.then((response) => response.objects[0]?.id ?? null);
+
+		if (person) {
+			const personPayload = SevdeskContactCreateSchema.parse({
+				surename: person.firstName,
+				familyname: person.lastName,
+				category: this.categoryRef(),
+				status: 1000,
+				parent: contactRef,
+				description: [
+					person.email ? `Email: ${person.email}` : null,
+					person.phone ? `Phone: ${person.phone}` : null,
+				]
+					.filter(Boolean)
+					.join(" | "),
+			});
+
+			if (existingChildContactId) {
+				await this.client.put(
+					`/Contact/${existingChildContactId}`,
+					SevdeskCreateContactResponseSchema,
+					personPayload,
+				);
+			} else {
+				await this.client.post(
+					"/Contact",
+					SevdeskCreateContactResponseSchema,
+					personPayload,
+				);
+			}
 		}
 
 		return {

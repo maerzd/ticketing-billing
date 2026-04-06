@@ -73,9 +73,7 @@ export function OrganizersManager({
 								<TableRow>
 									<TableHead>Organizer ID</TableHead>
 									<TableHead>Name</TableHead>
-									<TableHead>First / Last name</TableHead>
 									<TableHead>Email</TableHead>
-									<TableHead>Status</TableHead>
 									<TableHead>Updated</TableHead>
 								</TableRow>
 							</TableHeader>
@@ -92,11 +90,7 @@ export function OrganizersManager({
 											{organizer.organizerId}
 										</TableCell>
 										<TableCell>{organizer.name}</TableCell>
-										<TableCell>
-											{organizer.firstName} {organizer.lastName}
-										</TableCell>
 										<TableCell>{organizer.email}</TableCell>
-										<TableCell>{organizer.status}</TableCell>
 										<TableCell>
 											{formatUpdatedAt(organizer.updatedAt)}
 										</TableCell>

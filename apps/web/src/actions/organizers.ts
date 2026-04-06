@@ -152,51 +152,55 @@ export async function createOrganizer(input: CreateOrganizerInput) {
 			? { id: parsed.qontoBeneficiaryId }
 			: hasAnySepaField
 				? await (async () => {
-					const qontoInput = QontoBeneficiaryCreateInputSchema.safeParse({
-						sepaBeneficiaryName: parsed.sepaBeneficiaryName,
-						iban: parsed.iban,
-						bic: parsed.bic,
-						email: parsed.email,
-					});
-					if (!qontoInput.success) {
-						throw new AppError(
-							qontoInput.error.issues[0]?.message ??
-							"To create a Qonto beneficiary, provide SEPA Begünstigter, IBAN and BIC.",
-							400,
-						);
-					}
-					return beneficiariesService
-						.createBeneficiary(toQontoBeneficiaryInput(qontoInput.data))
-						.catch((error) =>
-							enrichExternalCreationError(error, {
-								failedStep: "Qonto beneficiary",
-							}),
-						);
-				})()
+						const qontoInput = QontoBeneficiaryCreateInputSchema.safeParse({
+							sepaBeneficiaryName: parsed.sepaBeneficiaryName,
+							iban: parsed.iban,
+							bic: parsed.bic,
+							email: parsed.email,
+						});
+						if (!qontoInput.success) {
+							throw new AppError(
+								qontoInput.error.issues[0]?.message ??
+									"To create a Qonto beneficiary, provide SEPA Begünstigter, IBAN and BIC.",
+								400,
+							);
+						}
+						return beneficiariesService
+							.createBeneficiary(toQontoBeneficiaryInput(qontoInput.data))
+							.catch((error) =>
+								enrichExternalCreationError(error, {
+									failedStep: "Qonto beneficiary",
+								}),
+							);
+					})()
 				: undefined;
 
 		const sevdeskContact = parsed.sevdeskContactId
 			? {
-				contactId: parsed.sevdeskContactId,
-			}
-			: await sevdeskContactsService
-				.createOrganizerWithContacts({
-					name: parsed.name,
-					firstName: parsed.firstName,
-					lastName: parsed.lastName,
-					vatNumber: parsed.vatNumber,
-					taxIdentificationNumber: parsed.taxIdentificationNumber,
-					iban: parsed.iban,
-					bic: parsed.bic,
-					billingAddress: parsed.billingAddress,
-					contactPersons: parsed.contactPersons,
-				})
-				.catch((error) =>
-					enrichExternalCreationError(error, {
-						failedStep: "Sevdesk contact",
-						beneficiaryId: beneficiary?.id,
-					}),
-				);
+					contactId: parsed.sevdeskContactId,
+				}
+			: await (() => {
+					const primaryContact = parsed.contactPersons?.[0];
+
+					return sevdeskContactsService
+						.createOrganizerWithContacts({
+							name: parsed.name,
+							firstName: primaryContact?.firstName,
+							lastName: primaryContact?.lastName,
+							vatNumber: parsed.vatNumber,
+							taxIdentificationNumber: parsed.taxIdentificationNumber,
+							iban: parsed.iban,
+							bic: parsed.bic,
+							billingAddress: parsed.billingAddress,
+							contactPersons: parsed.contactPersons,
+						})
+						.catch((error) =>
+							enrichExternalCreationError(error, {
+								failedStep: "Sevdesk contact",
+								beneficiaryId: beneficiary?.id,
+							}),
+						);
+				})();
 
 		const created: OrganizerRecord = await organizersService
 			.createOrganizer({
@@ -289,7 +293,7 @@ export async function updateOrganizer(input: UpdateOrganizerInput) {
 				if (!qontoInput.success) {
 					throw new AppError(
 						qontoInput.error.issues[0]?.message ??
-						"To create a Qonto beneficiary, provide SEPA Begünstigter, IBAN and BIC.",
+							"To create a Qonto beneficiary, provide SEPA Begünstigter, IBAN and BIC.",
 						400,
 					);
 				}
@@ -305,36 +309,39 @@ export async function updateOrganizer(input: UpdateOrganizerInput) {
 		}
 
 		// Sevdesk: update existing contact or create a new one
+		const contactPersons = input.contactPersons ?? existing.contactPersons;
+		const primaryContact = contactPersons?.[0];
+
 		const sevdeskInput = {
 			name: input.name ?? existing.name,
-			firstName: input.firstName ?? existing.firstName,
-			lastName: input.lastName ?? existing.lastName,
+			firstName: primaryContact?.firstName,
+			lastName: primaryContact?.lastName,
 			vatNumber: input.vatNumber ?? existing.vatNumber,
 			taxIdentificationNumber:
 				input.taxIdentificationNumber ?? existing.taxIdentificationNumber,
 			iban: input.iban ?? existing.iban,
 			bic: input.bic ?? existing.bic,
 			billingAddress: input.billingAddress ?? existing.billingAddress,
-			contactPersons: input.contactPersons ?? existing.contactPersons,
+			contactPersons,
 		};
 
 		const existingSevdeskId =
 			existing.sevdeskContactId ?? input.sevdeskContactId;
 		const sevdeskContact = existingSevdeskId
 			? await sevdeskContactsService
-				.updateOrganizerContact(existingSevdeskId, sevdeskInput)
-				.catch((error) =>
-					enrichExternalCreationError(error, {
-						failedStep: "Sevdesk contact",
-					}),
-				)
+					.updateOrganizerContact(existingSevdeskId, sevdeskInput)
+					.catch((error) =>
+						enrichExternalCreationError(error, {
+							failedStep: "Sevdesk contact",
+						}),
+					)
 			: await sevdeskContactsService
-				.createOrganizerWithContacts(sevdeskInput)
-				.catch((error) =>
-					enrichExternalCreationError(error, {
-						failedStep: "Sevdesk contact",
-					}),
-				);
+					.createOrganizerWithContacts(sevdeskInput)
+					.catch((error) =>
+						enrichExternalCreationError(error, {
+							failedStep: "Sevdesk contact",
+						}),
+					);
 
 		await vivenuAttributesService
 			.ensureOrganizerAttributeOption(input.organizerId)
@@ -386,37 +393,5 @@ export async function updateOrganizer(input: UpdateOrganizerInput) {
 			success: false,
 			error: message,
 		} as const;
-	}
-}
-
-export async function queryOrganizers() {
-	try {
-		const organizers = await organizersService.listOrganizers();
-		return {
-			success: true,
-			data: organizers,
-		} as const;
-	} catch (error) {
-		const message = getErrorMessage(error, "Failed to fetch organizers");
-		console.error("List organizers error:", message);
-
-		return {
-			success: false,
-			error: message,
-		} as const;
-	}
-}
-
-export async function getOrganizer(organizerId: string) {
-	try {
-		const organizer = await organizersService.getOrganizer(organizerId);
-		if (!organizer) {
-			return { success: false, error: "Veranstalter nicht gefunden" } as const;
-		}
-		return { success: true, data: organizer } as const;
-	} catch (error) {
-		const message = getErrorMessage(error, "Failed to fetch organizer");
-		console.error("Get organizer error:", message);
-		return { success: false, error: message } as const;
 	}
 }

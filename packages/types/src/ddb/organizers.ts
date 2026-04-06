@@ -11,8 +11,6 @@ export const OrganizerIdSchema = z
 export const OrganizerStatusSchema = z.enum(["ACTIVE", "INACTIVE"]);
 
 export const OrganizerBillingAddressSchema = z.object({
-	firstName: z.string().min(2, "Rechnungsanschrift: Vorname ist erforderlich"),
-	lastName: z.string().min(2, "Rechnungsanschrift: Nachname ist erforderlich"),
 	street: z.string().min(1, "Rechnungsanschrift: Straße ist erforderlich"),
 	city: z.string().min(1, "Rechnungsanschrift: Stadt ist erforderlich"),
 	zipCode: z
@@ -37,8 +35,6 @@ export const OrganizerContactPersonSchema = z.object({
 export const OrganizerRecordSchema = z.object({
 	organizerId: OrganizerIdSchema,
 	name: z.string().min(2, "Name ist erforderlich").optional(),
-	firstName: z.string().min(2, "Vorname ist erforderlich").optional(),
-	lastName: z.string().min(2, "Nachname ist erforderlich").optional(),
 	email: z.email("Ungültige E-Mail"),
 	billingAddress: OrganizerBillingAddressSchema,
 	contactPersons: z.array(OrganizerContactPersonSchema).optional(),

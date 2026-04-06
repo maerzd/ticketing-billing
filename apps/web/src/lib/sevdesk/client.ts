@@ -1,5 +1,6 @@
 import type { z } from "zod";
 import { ZodError } from "zod";
+import { da } from "zod/locales";
 import env from "@/env";
 import { AppError, ValidationError } from "@/lib/errors";
 
@@ -89,5 +90,13 @@ export class SevdeskClient {
 
 	async put<T>(endpoint: string, schema: z.ZodSchema<T>, body?: unknown) {
 		return this.request("PUT", endpoint, schema, body);
+	}
+
+	async delete<T>(
+		endpoint: string,
+		schema: z.ZodSchema<T>,
+		queryParams?: Record<string, string | number>,
+	) {
+		return this.request("DELETE", endpoint, schema, undefined, queryParams);
 	}
 }

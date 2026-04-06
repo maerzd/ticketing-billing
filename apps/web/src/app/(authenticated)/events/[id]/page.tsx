@@ -3,6 +3,7 @@ import NotFound from "@/app/not-found";
 import LabelText from "@/components/my-ui/label-text";
 import { Card, CardContent } from "@/components/ui/card";
 import { BreadcrumbSetter } from "@/context/breadcrumb-context";
+import { OrganizersService } from "@/lib/dynamodb/services/organizers";
 import { queryOrganizer } from "@/lib/notion/client";
 import {
 	fetchAllPOS,
@@ -29,6 +30,7 @@ export async function generateStaticParams(): Promise<PageParam[]> {
 export default async function Page({ params }: { params: Promise<PageParam> }) {
 	const eventId = (await params).id;
 	const user = await withAuth();
+	const organizersService = new OrganizersService();
 	const [event, ticketSales, revenue, pos] = await Promise.all([
 		fetchEvent(eventId),
 		fetchTicketSales({
@@ -48,10 +50,12 @@ export default async function Page({ params }: { params: Promise<PageParam> }) {
 		return <NotFound />;
 	}
 
-	const organizer = await queryOrganizer(
-		event.attributes?.organizerid,
-		user.organizationId,
-	);
+	const [organizer, organizerRecord] = await Promise.all([
+		queryOrganizer(event.attributes?.organizerid, user.organizationId),
+		event.attributes?.organizerid
+			? organizersService.getOrganizer(event.attributes.organizerid)
+			: Promise.resolve(null),
+	]);
 	return (
 		<div className="max-w-4xl">
 			<BreadcrumbSetter eventName={event.name} />
@@ -86,7 +90,7 @@ export default async function Page({ params }: { params: Promise<PageParam> }) {
 					revenue={revenue}
 					pos={pos}
 					eventStartDate={event.start}
-					organizerId={event.attributes?.organizerid}
+					organizerRecord={organizerRecord}
 				/>
 			</div>
 			<div className="my-8">

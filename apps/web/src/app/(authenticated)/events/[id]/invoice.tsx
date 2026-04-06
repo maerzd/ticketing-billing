@@ -2,10 +2,9 @@
 import type { OrganizerRecord } from "@ticketing-billing/types/ddb";
 import { Copy } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { createSevdeskInvoiceDraft } from "@/actions/invoices";
-import { getOrganizer } from "@/actions/organizers";
 import { Button } from "@/components/ui/button";
 import {
 	Table,
@@ -102,7 +101,7 @@ export default function Invoice({
 	setupFee = 25,
 	ticketCommissionRate = TICKET_COMMISSION_RATE,
 	eventStartDate,
-	organizerId,
+	organizerRecord,
 }: {
 	totalRevenue: number;
 	ticketsCount: number;
@@ -112,7 +111,7 @@ export default function Invoice({
 	officialPos?: Set<string>;
 	revenuePerPos?: Record<string, number>;
 	eventStartDate?: string;
-	organizerId?: string;
+	organizerRecord?: OrganizerRecord | null;
 }): React.ReactNode {
 	// Systemgebühr: 1€ pro verkauftem Ticket
 	const systemFee = ticketsCount * 1;
@@ -210,32 +209,12 @@ export default function Invoice({
 	const invoiceTextRef = useRef<HTMLDivElement>(null);
 	const [copied, setCopied] = useState(false);
 	const [showTooltip, setShowTooltip] = useState(false);
-	const [selectedClientId, setSelectedClientId] = useState("");
+	const [selectedClientId, setSelectedClientId] = useState(
+		organizerRecord?.sevdeskContactId ?? "",
+	);
 	const [isCreating, setIsCreating] = useState(false);
-	const [organizer, setOrganizer] = useState<
-		OrganizerRecord | null | undefined
-	>(organizerId ? undefined : null);
-
-	useEffect(() => {
-		if (!organizerId) {
-			setOrganizer(null);
-			return;
-		}
-		let cancelled = false;
-		setOrganizer(undefined);
-		getOrganizer(organizerId).then((result) => {
-			if (cancelled) return;
-			if (result.success) {
-				setOrganizer(result.data);
-				setSelectedClientId(result.data.sevdeskContactId ?? "");
-			} else {
-				setOrganizer(null);
-			}
-		});
-		return () => {
-			cancelled = true;
-		};
-	}, [organizerId]);
+	const organizer = organizerRecord ?? null;
+	const primaryContact = organizer?.contactPersons?.[0];
 	const handleCreateDraft = async () => {
 		if (!selectedClientId) return;
 
@@ -292,9 +271,7 @@ export default function Invoice({
 		<>
 			<div className="my-4 space-y-3 rounded-xl bg-muted/50 p-4 ring-1 ring-muted">
 				<h3 className="font-semibold">Entwurf in Sevdesk erstellen</h3>
-				{organizer === undefined ? (
-					<p className="text-muted-foreground text-sm">Lade Veranstalter…</p>
-				) : organizer === null ? (
+				{organizer === null ? (
 					<p className="text-muted-foreground text-sm">
 						Kein Veranstalter gefunden.{" "}
 						<Link href="/organizers" className="underline">
@@ -306,11 +283,13 @@ export default function Invoice({
 						<div className="w-full sm:max-w-sm">
 							<p className="text-sm font-medium">
 								{organizer.name ??
-									[organizer.firstName, organizer.lastName]
+									[primaryContact?.firstName, primaryContact?.lastName]
 										.filter(Boolean)
 										.join(" ")}
 							</p>
-							<p className="text-muted-foreground text-sm">{organizer.email}</p>
+							<p className="text-muted-foreground text-sm">
+								{primaryContact?.email ?? organizer.email}
+							</p>
 						</div>
 						<Button
 							onClick={handleCreateDraft}

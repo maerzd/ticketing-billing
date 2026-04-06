@@ -70,6 +70,7 @@ export function OrganizerDetailDialog({
 				<DialogHeader>
 					<DialogTitle>
 						{organizer ? organizer.name : "Veranstalter details"}
+						{" - "}({organizer?.organizerId})
 					</DialogTitle>
 					<DialogDescription>
 						Veranstalter anzeigen und bearbeiten
