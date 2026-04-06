@@ -43,7 +43,7 @@ interface UpsertOrganizerContactResult {
 }
 
 export class SevdeskContactsService {
-	constructor(private readonly client: SevdeskClient) { }
+	constructor(private readonly client: SevdeskClient) {}
 
 	private toNumericId(id: string, label: string) {
 		const numeric = Number.parseInt(id, 10);
