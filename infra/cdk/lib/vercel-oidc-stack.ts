@@ -3,7 +3,7 @@ import type { Table } from "aws-cdk-lib/aws-dynamodb";
 import * as iam from "aws-cdk-lib/aws-iam";
 import type { Construct } from "constructs";
 
-const VERCEL_TEAM_SLUG = "maerzd";
+const VERCEL_TEAM_SLUG = "zuenftick";
 const VERCEL_PROJECT_NAME = "ticketing-billing";
 const VERCEL_OIDC_ISSUER = `https://oidc.vercel.com/${VERCEL_TEAM_SLUG}`;
 const VERCEL_AUDIENCE = `https://vercel.com/${VERCEL_TEAM_SLUG}`;
