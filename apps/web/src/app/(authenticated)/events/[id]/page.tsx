@@ -1,4 +1,3 @@
-import { withAuth } from "@workos-inc/authkit-nextjs";
 import NotFound from "@/app/not-found";
 import { BillingStatusBadge } from "@/components/my-ui/billing-status-badge";
 import LabelText from "@/components/my-ui/label-text";
@@ -6,7 +5,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { BreadcrumbSetter } from "@/context/breadcrumb-context";
 import { BillingRecordsService } from "@/lib/dynamodb/services/billing-records";
 import { OrganizersService } from "@/lib/dynamodb/services/organizers";
-import { queryOrganizer } from "@/lib/notion/client";
 import {
 	fetchAllPOS,
 	fetchEvent,

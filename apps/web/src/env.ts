@@ -34,6 +34,7 @@ const envSchema = z
 
 		RESEND_API_KEY: z.string().min(1),
 		RESEND_FROM_EMAIL: z.string().email().default("noreply@zuenftick.de"),
+		WORKOS_API_KEY: z.string().min(1),
 	})
 	.superRefine((value, context) => {
 		if (value.QONTO_SANDBOX && !value.QONTO_STAGING_TOKEN) {
@@ -74,6 +75,8 @@ const env = envSchema.parse({
 
 	RESEND_API_KEY: process.env.RESEND_API_KEY,
 	RESEND_FROM_EMAIL: process.env.RESEND_FROM_EMAIL,
+
+	WORKOS_API_KEY: process.env.WORKOS_API_KEY,
 });
 
 export default env;

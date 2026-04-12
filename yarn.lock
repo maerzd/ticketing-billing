@@ -2687,6 +2687,7 @@ __metadata:
     "@types/react-dom": "npm:^19.2.3"
     "@vercel/oidc-aws-credentials-provider": "npm:^3.0.7"
     "@workos-inc/authkit-nextjs": "npm:^3.0.0"
+    "@workos-inc/node": "npm:^8.9.0"
     class-variance-authority: "npm:^0.7.1"
     clsx: "npm:^2.1.1"
     lucide-react: "npm:^0.577.0"

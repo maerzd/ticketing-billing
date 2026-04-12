@@ -26,7 +26,7 @@ import { TransferCreateDialog } from "./transfer-create-dialog";
 
 export default async function TransfersPage() {
 	const result = await queryTransfers();
-	const showQontoLogin = !result.success && requiresQontoAuth(result.error);
+	const showQontoLogin = !result.success && requiresQontoAuth(result.errorCode);
 	const beneficiariesResult = await queryBeneficiaries();
 	const beneficiaries = beneficiariesResult.success
 		? beneficiariesResult.data.beneficiaries

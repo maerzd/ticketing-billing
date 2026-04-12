@@ -42,6 +42,7 @@ const OrganizerFormSchema = z.object({
 	billingAddress: s.billingAddress,
 	sevdeskContactId: s.sevdeskContactId.unwrap().or(z.literal("")),
 	qontoBeneficiaryId: s.qontoBeneficiaryId.unwrap().or(z.literal("")),
+	workosOrganizationId: s.workosOrganizationId.unwrap().or(z.literal("")),
 	// UI-specific: string representation for select/number inputs
 	taxRate: z.enum(TAX_RATE_VALUES),
 	contactFirstName: z.string(),
@@ -98,6 +99,7 @@ function formToInput(values: OrganizerFormValues): CreateOrganizerInput {
 		billingAddress: values.billingAddress,
 		sevdeskContactId: trimToOptional(values.sevdeskContactId),
 		qontoBeneficiaryId: trimToOptional(values.qontoBeneficiaryId),
+		workosOrganizationId: trimToOptional(values.workosOrganizationId),
 		contactPersons:
 			contactFirstName || contactLastName || contactEmail || contactPhone
 				? [
@@ -141,6 +143,7 @@ export const defaultOrganizerFormValues = (): OrganizerFormValues => ({
 	billingAddress: { street: "", city: "", zipCode: "", country: "DE" },
 	sevdeskContactId: "",
 	qontoBeneficiaryId: "",
+	workosOrganizationId: "",
 	contactFirstName: "",
 	contactLastName: "",
 	contactEmail: "",
@@ -166,6 +169,7 @@ export const organizerToFormValues = (
 		billingAddress: organizer.billingAddress,
 		sevdeskContactId: organizer.sevdeskContactId ?? "",
 		qontoBeneficiaryId: organizer.qontoBeneficiaryId ?? "",
+		workosOrganizationId: organizer.workosOrganizationId ?? "",
 		contactFirstName: c?.firstName ?? "",
 		contactLastName: c?.lastName ?? "",
 		contactEmail: c?.email ?? "",
@@ -231,8 +235,12 @@ export function OrganizerForm({
 		!organizerIdValue.trim().startsWith("org-");
 	const qontoBeneficiaryIdValue = form.watch("qontoBeneficiaryId")?.trim();
 	const sevdeskContactIdValue = form.watch("sevdeskContactId")?.trim();
+	const workosOrganizationIdValue = form.watch("workosOrganizationId")?.trim();
 	const sevdeskContactUrl = sevdeskContactIdValue
 		? `https://my.sevdesk.de/crm/detail/id/${sevdeskContactIdValue}`
+		: null;
+	const workosOrganizationUrl = workosOrganizationIdValue
+		? `https://dashboard.workos.com/organizations/${workosOrganizationIdValue}`
 		: null;
 
 	const taxRateOptions = useMemo(
@@ -513,6 +521,36 @@ export function OrganizerForm({
 											className="mt-1 inline-block text-blue-600 text-xs hover:underline"
 										>
 											Open in sevdesk
+										</a>
+									)}
+									{fieldState.invalid && (
+										<FieldError errors={[fieldState.error]} />
+									)}
+								</Field>
+							)}
+						/>
+						<Controller
+							name="workosOrganizationId"
+							control={form.control}
+							render={({ field, fieldState }) => (
+								<Field data-invalid={fieldState.invalid}>
+									<FieldLabel htmlFor={field.name}>
+										WorkOS organization ID
+									</FieldLabel>
+									<Input
+										{...field}
+										id={field.name}
+										disabled={disabled}
+										aria-invalid={fieldState.invalid}
+									/>
+									{workosOrganizationUrl && (
+										<a
+											href={workosOrganizationUrl}
+											target="_blank"
+											rel="noreferrer"
+											className="mt-1 inline-block text-blue-600 text-xs hover:underline"
+										>
+											Open in WorkOS
 										</a>
 									)}
 									{fieldState.invalid && (

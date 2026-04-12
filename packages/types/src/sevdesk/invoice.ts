@@ -97,7 +97,7 @@ export const SevdeskInvoiceCreateSchema = z.object({
 });
 
 export const SevdeskInvoiceResponseSchema = z.object({
-	id: z.string(),
+	id: z.coerce.string(),
 	objectName: z.literal("Invoice"),
 	invoiceNumber: z.string().nullable().optional(),
 	contact: SevdeskResponseRefSchema,
@@ -137,7 +137,7 @@ export const SevdeskCreateInvoiceResponseSchema = z.object({
 
 export const SevdeskNextInvoiceNumberResponseSchema = z.object({
 	objects: z.object({
-		id: z.string(),
+		id: z.coerce.string(),
 		objectName: z.literal("SevSequence"),
 		forObject: z.string(),
 		format: z.string(),

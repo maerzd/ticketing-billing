@@ -30,7 +30,7 @@ export const SevdeskInvoicePosCreateSchema = z.object({
 });
 
 export const SevdeskInvoicePosResponseSchema = z.object({
-	id: z.string(),
+	id: z.coerce.string(),
 	objectName: z.literal("InvoicePos"),
 	create: z.string().nullable().optional(),
 	update: z.string().nullable().optional(),

@@ -6,7 +6,7 @@ import { BeneficiariesManager } from "./BeneficiariesManager";
 
 export default async function BeneficiariesPage() {
 	const result = await queryBeneficiaries();
-	const showQontoLogin = !result.success && requiresQontoAuth(result.error);
+	const showQontoLogin = !result.success && requiresQontoAuth(result.errorCode);
 	const beneficiaries = result.success ? result.data.beneficiaries : [];
 	const totalCount = result.success ? result.data.meta.total_count : 0;
 

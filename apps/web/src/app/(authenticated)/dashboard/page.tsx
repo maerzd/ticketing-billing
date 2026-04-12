@@ -1,6 +1,8 @@
 import { FileText, Send, Users } from "lucide-react";
 import Link from "next/link";
+import { qontoLogoutAction } from "@/actions/qonto-logout";
 import { QontoConnectCard } from "@/components/my-ui/qonto-connect-card";
+import { QontoErrorToast } from "@/components/my-ui/qonto-error-toast";
 import { Button } from "@/components/ui/button";
 import {
 	Card,
@@ -13,12 +15,21 @@ import { requiresQontoAuth } from "@/lib/qonto/auth-state";
 import { queryOrganization } from "@/lib/qonto/queries";
 import SalesDashboard from "./sales-dashboard";
 
-export default async function Page() {
+interface PageProps {
+	searchParams: Promise<Record<string, string | undefined>>;
+}
+
+export default async function Page({ searchParams }: PageProps) {
+	const params = await searchParams;
 	const result = await queryOrganization();
-	const showQontoLogin = !result.success && requiresQontoAuth(result.error);
+	const showQontoLogin = !result.success && requiresQontoAuth(result.errorCode);
 
 	return (
 		<div className="space-y-8">
+			<QontoErrorToast
+				error={params.qonto_error}
+				description={params.qonto_error_description}
+			/>
 			{/* Organization Info */}
 			<div>
 				<h1 className="font-bold text-3xl text-slate-900">Dashboard</h1>
@@ -34,13 +45,11 @@ export default async function Page() {
 							<CardTitle>Organisation</CardTitle>
 							<CardDescription>Aktive Qonto Organisation</CardDescription>
 						</div>
-						<Button
-							render={<Link href="/api/qonto/auth/logout" />}
-							nativeButton={false}
-							variant="outline"
-						>
-							Qonto Logout
-						</Button>
+						<form action={qontoLogoutAction}>
+							<Button type="submit" variant="outline">
+								Qonto Logout
+							</Button>
+						</form>
 					</CardHeader>
 					<CardContent>
 						<div className="grid gap-4">

@@ -32,19 +32,18 @@ const SCOPES = [
 	"organization.read",
 	"payment.write",
 	"offline_access",
-	"attachment.read",
-	"attachment.write",
-	"client.read",
-	"client.write",
-	"client_invoice.write",
-	"client_invoices.read",
-	"einvoicing.read",
-	"request_transfers.write",
-	"supplier_invoice.read",
-	"supplier_invoice.write",
-	"team.read",
-	"webhook",
 ];
+
+// Scopes removed during least-privilege review (2026-04-12).
+// Re-add as needed when the corresponding features are implemented:
+//   "attachment.read", "attachment.write",
+//   "client.read", "client.write",
+//   "client_invoice.write", "client_invoices.read",
+//   "einvoicing.read",
+//   "request_transfers.write",
+//   "supplier_invoice.read", "supplier_invoice.write",
+//   "team.read",
+//   "webhook",
 
 type AuthorizationUrlOptions = {
 	organizationId?: string;
