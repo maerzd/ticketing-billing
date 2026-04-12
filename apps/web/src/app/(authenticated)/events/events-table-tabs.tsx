@@ -1,7 +1,9 @@
 "use client";
 
+import type { BillingStatus } from "@ticketing-billing/types/ddb";
 import type { TicketSalesResult } from "@ticketing-billing/types/vivenu/ticket-sales";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { BillingStatusBadge } from "@/components/my-ui/billing-status-badge";
 import { ClickableTableRow } from "@/components/my-ui/clickable-table-row";
 import { StatusLed } from "@/components/my-ui/status-led";
 import {
@@ -20,6 +22,7 @@ interface EventsTableTabsProps {
 	ticketSalesMeta: Record<string, { label: string }>;
 	upcomingEvents: TicketSalesResult[];
 	initialTab?: "upcoming" | "past";
+	billingStatusByEventId?: Record<string, BillingStatus>;
 }
 
 const isValidTab = (tab: string | null): tab is "upcoming" | "past" =>
@@ -28,9 +31,11 @@ const isValidTab = (tab: string | null): tab is "upcoming" | "past" =>
 function EventsTable({
 	events,
 	ticketSalesMeta,
+	billingStatusByEventId,
 }: {
 	events: TicketSalesResult[];
 	ticketSalesMeta: Record<string, { label: string }>;
+	billingStatusByEventId?: Record<string, BillingStatus>;
 }) {
 	if (events.length === 0) {
 		return (
@@ -51,11 +56,15 @@ function EventsTable({
 					<TableHead>Name</TableHead>
 					<TableHead>Tickets</TableHead>
 					<TableHead>Veranstalter</TableHead>
+					<TableHead>Abrechnung</TableHead>
 				</TableRow>
 			</TableHeader>
 			<TableBody>
 				{events.map((ticketSale: TicketSalesResult) => {
 					const eventMeta = ticketSalesMeta[ticketSale.eventId];
+					const billingStatus = billingStatusByEventId?.[ticketSale.eventId] as
+						| BillingStatus
+						| undefined;
 					return (
 						<ClickableTableRow
 							className="cursor-pointer transition-colors hover:bg-muted/50"
@@ -75,10 +84,12 @@ function EventsTable({
 								/>
 							</TableCell>
 							<TableCell>{eventMeta?.label ?? ticketSale.eventId}</TableCell>
-
 							<TableCell>{ticketSale.count ?? 0}</TableCell>
 							<TableCell>
 								{ticketSale["event->attributes.organizerid"]}
+							</TableCell>
+							<TableCell>
+								<BillingStatusBadge status={billingStatus ?? "UNBILLED"} />
 							</TableCell>
 						</ClickableTableRow>
 					);
@@ -93,6 +104,7 @@ export function EventsTableTabs({
 	ticketSalesMeta,
 	upcomingEvents,
 	initialTab = "upcoming",
+	billingStatusByEventId,
 }: EventsTableTabsProps) {
 	const pathname = usePathname();
 	const router = useRouter();
@@ -126,10 +138,15 @@ export function EventsTableTabs({
 				<EventsTable
 					events={upcomingEvents}
 					ticketSalesMeta={ticketSalesMeta}
+					billingStatusByEventId={billingStatusByEventId}
 				/>
 			</TabsContent>
 			<TabsContent value="past">
-				<EventsTable events={pastEvents} ticketSalesMeta={ticketSalesMeta} />
+				<EventsTable
+					events={pastEvents}
+					ticketSalesMeta={ticketSalesMeta}
+					billingStatusByEventId={billingStatusByEventId}
+				/>
 			</TabsContent>
 		</Tabs>
 	);

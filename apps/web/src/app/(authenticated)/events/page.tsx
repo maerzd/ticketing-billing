@@ -1,4 +1,6 @@
+import type { BillingStatus } from "@ticketing-billing/types/ddb";
 import { Suspense } from "react";
+import { BillingRecordsService } from "@/lib/dynamodb/services/billing-records";
 import { fetchTicketSales } from "@/lib/vivenu/client";
 import { EventsTableTabs } from "./events-table-tabs";
 
@@ -13,11 +15,36 @@ export default async function Page({ searchParams }: PageProps) {
 	const params = await searchParams;
 	const initialTab = isValidTab(params.tab) ? params.tab : "upcoming";
 
-	// Fetch ticket sales and revenue in parallel
-	const ticketSales = await fetchTicketSales({
-		groupBy: "eventId",
-		dimensions: ["event->start", "event->end", "event->attributes.organizerid"],
-	});
+	// Fetch ticket sales and billing records in parallel
+	const [ticketSales, billingRecordsResult] = await Promise.all([
+		fetchTicketSales({
+			groupBy: "eventId",
+			dimensions: [
+				"event->start",
+				"event->end",
+				"event->attributes.organizerid",
+			],
+		}),
+		new BillingRecordsService()
+			.getBillingRecordsByStatus("PENDING")
+			.then(async (pending) => {
+				const [inProgress, completed, attention] = await Promise.all([
+					new BillingRecordsService().getBillingRecordsByStatus("IN_PROGRESS"),
+					new BillingRecordsService().getBillingRecordsByStatus("COMPLETED"),
+					new BillingRecordsService().getBillingRecordsByStatus(
+						"ATTENTION_NEEDED",
+					),
+				]);
+				return [...pending, ...inProgress, ...completed, ...attention];
+			})
+			.catch(() => []),
+	]);
+
+	// Build a lookup from eventId → billingStatus
+	const billingStatusByEventId: Record<string, BillingStatus> = {};
+	for (const r of billingRecordsResult) {
+		billingStatusByEventId[r.eventId] = r.billingStatus;
+	}
 
 	// Split events into past and upcoming based on event start date
 	// Parse dates once, sort once, partition once
@@ -57,6 +84,7 @@ export default async function Page({ searchParams }: PageProps) {
 					pastEvents={pastEvents}
 					ticketSalesMeta={ticketSales?.meta.eventId ?? {}}
 					upcomingEvents={upcomingEvents}
+					billingStatusByEventId={billingStatusByEventId}
 				/>
 			</Suspense>
 		</div>

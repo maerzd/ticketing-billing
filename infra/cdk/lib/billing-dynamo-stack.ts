@@ -47,11 +47,11 @@ export class BillingDynamoStack extends cdk.Stack {
 		this.billingRecordsTable.addGlobalSecondaryIndex({
 			indexName: "StatusIndex",
 			partitionKey: {
-				name: "status",
+				name: "billingStatus",
 				type: AttributeType.STRING,
 			},
 			sortKey: {
-				name: "triggered_at",
+				name: "updatedAt",
 				type: AttributeType.STRING,
 			},
 			projectionType: cdk.aws_dynamodb.ProjectionType.ALL,
@@ -60,7 +60,7 @@ export class BillingDynamoStack extends cdk.Stack {
 		this.billingRecordsTable.addGlobalSecondaryIndex({
 			indexName: "EventIndex",
 			partitionKey: {
-				name: "eventid",
+				name: "eventId",
 				type: AttributeType.STRING,
 			},
 			projectionType: cdk.aws_dynamodb.ProjectionType.ALL,

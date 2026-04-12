@@ -160,3 +160,25 @@ export type SevdeskCreateInvoiceResponse = z.infer<typeof SevdeskCreateInvoiceRe
 export type SevdeskNextInvoiceNumberResponse = z.infer<
 	typeof SevdeskNextInvoiceNumberResponseSchema
 >;
+
+export const SevdeskGetInvoiceResponseSchema = z.object({
+	objects: SevdeskInvoiceResponseSchema,
+});
+
+export const SevdeskSendByResponseSchema = z.object({
+	objects: SevdeskInvoiceResponseSchema,
+});
+
+export const SevdeskInvoicePdfResponseSchema = z.object({
+	objects: z.object({
+		filename: z.string(),
+		mimeType: z.string(),
+		base64encoded: z.string(),
+		content: z.string().optional(),
+	}),
+});
+
+export type SevdeskGetInvoiceResponse = z.infer<typeof SevdeskGetInvoiceResponseSchema>;
+export type SevdeskSendByResponse = z.infer<typeof SevdeskSendByResponseSchema>;
+export type SevdeskInvoicePdfResponse = z.infer<typeof SevdeskInvoicePdfResponseSchema>;
+

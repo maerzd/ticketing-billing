@@ -1,8 +1,10 @@
 import { withAuth } from "@workos-inc/authkit-nextjs";
 import NotFound from "@/app/not-found";
+import { BillingStatusBadge } from "@/components/my-ui/billing-status-badge";
 import LabelText from "@/components/my-ui/label-text";
 import { Card, CardContent } from "@/components/ui/card";
 import { BreadcrumbSetter } from "@/context/breadcrumb-context";
+import { BillingRecordsService } from "@/lib/dynamodb/services/billing-records";
 import { OrganizersService } from "@/lib/dynamodb/services/organizers";
 import { queryOrganizer } from "@/lib/notion/client";
 import {
@@ -30,6 +32,7 @@ export async function generateStaticParams(): Promise<PageParam[]> {
 export default async function Page({ params }: { params: Promise<PageParam> }) {
 	const eventId = (await params).id;
 	const organizersService = new OrganizersService();
+	const billingRecordsService = new BillingRecordsService();
 	const [event, ticketSales, revenue, pos] = await Promise.all([
 		fetchEvent(eventId),
 		fetchTicketSales({
@@ -49,15 +52,25 @@ export default async function Page({ params }: { params: Promise<PageParam> }) {
 		return <NotFound />;
 	}
 
-	const [organizer] = await Promise.all([
-		event.attributes?.organizerid
-			? organizersService.getOrganizer(event.attributes.organizerid)
+	const organizerId = event.attributes?.organizerid;
+
+	const [organizer, billingRecord] = await Promise.all([
+		organizerId
+			? organizersService.getOrganizer(organizerId)
 			: Promise.resolve(null),
+		billingRecordsService.getBillingRecordByEventId(eventId),
 	]);
 	return (
 		<div className="max-w-4xl">
 			<BreadcrumbSetter eventName={event.name} />
-			<h1 className="mb-4 font-bold text-2xl">{event.name}</h1>
+			<div className="mb-4 flex items-center justify-between">
+				<h1 className="font-bold text-2xl">{event.name}</h1>
+				{billingRecord ? (
+					<BillingStatusBadge status={billingRecord.billingStatus} />
+				) : (
+					<BillingStatusBadge status="UNBILLED" />
+				)}
+			</div>
 			<div className="grid gap-4">
 				<Card>
 					<CardContent className="grid grid-cols-2 gap-4">
@@ -88,6 +101,7 @@ export default async function Page({ params }: { params: Promise<PageParam> }) {
 					organizer={organizer}
 					revenue={revenue}
 					pos={pos}
+					billingRecord={billingRecord ?? undefined}
 				/>
 			</div>
 			<div className="my-8">

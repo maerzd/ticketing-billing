@@ -31,6 +31,9 @@ const envSchema = z
 		SEVDESK_TAX_RULE_ID: z.coerce.string().default("1"),
 		SEVDESK_CONTACT_PERSON_ID: z.coerce.string().default("1469956"),
 		SEVDESK_INVOICE_UNIT_ID: z.coerce.string().default("1"),
+
+		RESEND_API_KEY: z.string().min(1),
+		RESEND_FROM_EMAIL: z.string().email().default("noreply@zuenftick.de"),
 	})
 	.superRefine((value, context) => {
 		if (value.QONTO_SANDBOX && !value.QONTO_STAGING_TOKEN) {
@@ -68,6 +71,9 @@ const env = envSchema.parse({
 	SEVDESK_TAX_RULE_ID: process.env.SEVDESK_TAX_RULE_ID,
 	SEVDESK_CONTACT_PERSON_ID: process.env.SEVDESK_CONTACT_PERSON_ID,
 	SEVDESK_INVOICE_UNIT_ID: process.env.SEVDESK_INVOICE_UNIT_ID,
+
+	RESEND_API_KEY: process.env.RESEND_API_KEY,
+	RESEND_FROM_EMAIL: process.env.RESEND_FROM_EMAIL,
 });
 
 export default env;

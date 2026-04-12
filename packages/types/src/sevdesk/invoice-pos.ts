@@ -77,8 +77,15 @@ export const SevdeskSaveInvoiceResponseSchema = z.object({
 	}),
 });
 
+export const SevdeskInvoicePositionsResponseSchema = z.object({
+	objects: z.array(SevdeskInvoicePosResponseSchema),
+});
+
 export type SevdeskInvoicePosCreate = z.infer<
 	typeof SevdeskInvoicePosCreateSchema
 >;
 export type SevdeskInvoicePos = z.infer<typeof SevdeskInvoicePosResponseSchema>;
 export type SevdeskSaveInvoice = z.infer<typeof SevdeskSaveInvoiceSchema>;
+export type SevdeskInvoicePositionsResponse = z.infer<
+	typeof SevdeskInvoicePositionsResponseSchema
+>;
