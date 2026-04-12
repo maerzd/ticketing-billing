@@ -28,11 +28,7 @@ const getOAuthHeaders = (): Record<string, string> => {
 	return headers;
 };
 
-const SCOPES = [
-	"organization.read",
-	"payment.write",
-	"offline_access",
-];
+const SCOPES = ["organization.read", "payment.write", "offline_access"];
 
 // Scopes removed during least-privilege review (2026-04-12).
 // Re-add as needed when the corresponding features are implemented:

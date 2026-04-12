@@ -5,10 +5,7 @@ import { AppError } from "@/lib/errors";
 import { exchangeCodeForToken } from "@/lib/qonto/oauth";
 import { getBaseUrl } from "@/lib/utils";
 
-function buildDashboardErrorUrl(
-	error: string,
-	description?: string,
-): URL {
+function buildDashboardErrorUrl(error: string, description?: string): URL {
 	const target = new URL("/dashboard", getBaseUrl());
 	target.searchParams.set("qonto_error", error);
 	if (description) {

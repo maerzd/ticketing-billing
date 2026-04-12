@@ -95,10 +95,10 @@ const enrichExternalCreationError = (
 	error: unknown,
 	context: {
 		failedStep:
-		| "Qonto beneficiary"
-		| "Sevdesk contact"
-		| "WorkOS organization"
-		| "Vivenu organizer attribute";
+			| "Qonto beneficiary"
+			| "Sevdesk contact"
+			| "WorkOS organization"
+			| "Vivenu organizer attribute";
 		beneficiaryId?: string;
 		sevdeskContactId?: string;
 		workosOrganizationId?: string;
@@ -173,70 +173,70 @@ export async function createOrganizer(input: CreateOrganizerInput) {
 			? { id: parsed.qontoBeneficiaryId }
 			: hasAnySepaField
 				? await (async () => {
-					const qontoInput = QontoBeneficiaryCreateInputSchema.safeParse({
-						sepaBeneficiaryName: parsed.sepaBeneficiaryName,
-						iban: parsed.iban,
-						bic: parsed.bic,
-						email: parsed.email,
-					});
-					if (!qontoInput.success) {
-						throw new AppError(
-							qontoInput.error.issues[0]?.message ??
-							"To create a Qonto beneficiary, provide SEPA Begünstigter, IBAN and BIC.",
-							400,
-						);
-					}
-					return beneficiariesService
-						.createBeneficiary(toQontoBeneficiaryInput(qontoInput.data))
-						.catch((error) =>
-							enrichExternalCreationError(error, {
-								failedStep: "Qonto beneficiary",
-							}),
-						);
-				})()
+						const qontoInput = QontoBeneficiaryCreateInputSchema.safeParse({
+							sepaBeneficiaryName: parsed.sepaBeneficiaryName,
+							iban: parsed.iban,
+							bic: parsed.bic,
+							email: parsed.email,
+						});
+						if (!qontoInput.success) {
+							throw new AppError(
+								qontoInput.error.issues[0]?.message ??
+									"To create a Qonto beneficiary, provide SEPA Begünstigter, IBAN and BIC.",
+								400,
+							);
+						}
+						return beneficiariesService
+							.createBeneficiary(toQontoBeneficiaryInput(qontoInput.data))
+							.catch((error) =>
+								enrichExternalCreationError(error, {
+									failedStep: "Qonto beneficiary",
+								}),
+							);
+					})()
 				: undefined;
 
 		const sevdeskContact = parsed.sevdeskContactId
 			? {
-				contactId: parsed.sevdeskContactId,
-			}
+					contactId: parsed.sevdeskContactId,
+				}
 			: await (() => {
-				const primaryContact = parsed.contactPersons?.[0];
+					const primaryContact = parsed.contactPersons?.[0];
 
-				return sevdeskContactsService
-					.createOrganizerWithContacts({
-						name: parsed.name,
-						firstName: primaryContact?.firstName,
-						lastName: primaryContact?.lastName,
-						vatNumber: parsed.vatNumber,
-						taxIdentificationNumber: parsed.taxIdentificationNumber,
-						iban: parsed.iban,
-						bic: parsed.bic,
-						billingAddress: parsed.billingAddress,
-						contactPersons: parsed.contactPersons,
-					})
-					.catch((error) =>
-						enrichExternalCreationError(error, {
-							failedStep: "Sevdesk contact",
-							beneficiaryId: beneficiary?.id,
-						}),
-					);
-			})();
+					return sevdeskContactsService
+						.createOrganizerWithContacts({
+							name: parsed.name,
+							firstName: primaryContact?.firstName,
+							lastName: primaryContact?.lastName,
+							vatNumber: parsed.vatNumber,
+							taxIdentificationNumber: parsed.taxIdentificationNumber,
+							iban: parsed.iban,
+							bic: parsed.bic,
+							billingAddress: parsed.billingAddress,
+							contactPersons: parsed.contactPersons,
+						})
+						.catch((error) =>
+							enrichExternalCreationError(error, {
+								failedStep: "Sevdesk contact",
+								beneficiaryId: beneficiary?.id,
+							}),
+						);
+				})();
 
 		const workosOrg = parsed.workosOrganizationId
 			? { organizationId: parsed.workosOrganizationId }
 			: await workosOrganizationsService
-				.createOrganization({
-					name: parsed.name ?? parsed.organizerId,
-					externalId: parsed.organizerId,
-				})
-				.catch((error) =>
-					enrichExternalCreationError(error, {
-						failedStep: "WorkOS organization",
-						beneficiaryId: beneficiary?.id,
-						sevdeskContactId: sevdeskContact?.contactId,
-					}),
-				);
+					.createOrganization({
+						name: parsed.name ?? parsed.organizerId,
+						externalId: parsed.organizerId,
+					})
+					.catch((error) =>
+						enrichExternalCreationError(error, {
+							failedStep: "WorkOS organization",
+							beneficiaryId: beneficiary?.id,
+							sevdeskContactId: sevdeskContact?.contactId,
+						}),
+					);
 
 		const created: OrganizerRecord = await organizersService
 			.createOrganizer({
@@ -336,7 +336,7 @@ export async function updateOrganizer(input: UpdateOrganizerInput) {
 				if (!qontoInput.success) {
 					throw new AppError(
 						qontoInput.error.issues[0]?.message ??
-						"To create a Qonto beneficiary, provide SEPA Begünstigter, IBAN and BIC.",
+							"To create a Qonto beneficiary, provide SEPA Begünstigter, IBAN and BIC.",
 						400,
 					);
 				}
@@ -372,19 +372,19 @@ export async function updateOrganizer(input: UpdateOrganizerInput) {
 			existing.sevdeskContactId ?? input.sevdeskContactId;
 		const sevdeskContact = existingSevdeskId
 			? await sevdeskContactsService
-				.updateOrganizerContact(existingSevdeskId, sevdeskInput)
-				.catch((error) =>
-					enrichExternalCreationError(error, {
-						failedStep: "Sevdesk contact",
-					}),
-				)
+					.updateOrganizerContact(existingSevdeskId, sevdeskInput)
+					.catch((error) =>
+						enrichExternalCreationError(error, {
+							failedStep: "Sevdesk contact",
+						}),
+					)
 			: await sevdeskContactsService
-				.createOrganizerWithContacts(sevdeskInput)
-				.catch((error) =>
-					enrichExternalCreationError(error, {
-						failedStep: "Sevdesk contact",
-					}),
-				);
+					.createOrganizerWithContacts(sevdeskInput)
+					.catch((error) =>
+						enrichExternalCreationError(error, {
+							failedStep: "Sevdesk contact",
+						}),
+					);
 
 		await vivenuAttributesService
 			.ensureOrganizerAttributeOption(input.organizerId)
@@ -404,25 +404,25 @@ export async function updateOrganizer(input: UpdateOrganizerInput) {
 			existing.workosOrganizationId ?? input.workosOrganizationId;
 		const workosOrg = existingWorkosId
 			? await workosOrganizationsService
-				.updateOrganization({
-					organizationId: existingWorkosId,
-					name: input.name ?? existing.name,
-				})
-				.catch((error) =>
-					enrichExternalCreationError(error, {
-						failedStep: "WorkOS organization",
-					}),
-				)
+					.updateOrganization({
+						organizationId: existingWorkosId,
+						name: input.name ?? existing.name,
+					})
+					.catch((error) =>
+						enrichExternalCreationError(error, {
+							failedStep: "WorkOS organization",
+						}),
+					)
 			: await workosOrganizationsService
-				.createOrganization({
-					name: input.name ?? existing.name ?? input.organizerId,
-					externalId: input.organizerId,
-				})
-				.catch((error) =>
-					enrichExternalCreationError(error, {
-						failedStep: "WorkOS organization",
-					}),
-				);
+					.createOrganization({
+						name: input.name ?? existing.name ?? input.organizerId,
+						externalId: input.organizerId,
+					})
+					.catch((error) =>
+						enrichExternalCreationError(error, {
+							failedStep: "WorkOS organization",
+						}),
+					);
 
 		const sanitizedInput = Object.fromEntries(
 			Object.entries(input).filter(([, value]) => value !== undefined),

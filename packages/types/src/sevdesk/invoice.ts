@@ -156,7 +156,9 @@ export type SevdeskTaxType = z.infer<typeof SevdeskTaxTypeSchema>;
 export type SevdeskTaxRule = z.infer<typeof SevdeskTaxRuleSchema>;
 export type SevdeskInvoiceCreate = z.infer<typeof SevdeskInvoiceCreateSchema>;
 export type SevdeskInvoice = z.infer<typeof SevdeskInvoiceResponseSchema>;
-export type SevdeskCreateInvoiceResponse = z.infer<typeof SevdeskCreateInvoiceResponseSchema>;
+export type SevdeskCreateInvoiceResponse = z.infer<
+	typeof SevdeskCreateInvoiceResponseSchema
+>;
 export type SevdeskNextInvoiceNumberResponse = z.infer<
 	typeof SevdeskNextInvoiceNumberResponseSchema
 >;
@@ -178,7 +180,10 @@ export const SevdeskInvoicePdfResponseSchema = z.object({
 	}),
 });
 
-export type SevdeskGetInvoiceResponse = z.infer<typeof SevdeskGetInvoiceResponseSchema>;
+export type SevdeskGetInvoiceResponse = z.infer<
+	typeof SevdeskGetInvoiceResponseSchema
+>;
 export type SevdeskSendByResponse = z.infer<typeof SevdeskSendByResponseSchema>;
-export type SevdeskInvoicePdfResponse = z.infer<typeof SevdeskInvoicePdfResponseSchema>;
-
+export type SevdeskInvoicePdfResponse = z.infer<
+	typeof SevdeskInvoicePdfResponseSchema
+>;

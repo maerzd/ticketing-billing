@@ -15,10 +15,8 @@ export async function GET(request: Request) {
 	// Allow query-param overrides only in development
 	if (process.env.NODE_ENV === "development") {
 		const url = new URL(request.url);
-		organizationId =
-			url.searchParams.get("organization_id") || organizationId;
-		registrationId =
-			url.searchParams.get("registration_id") || registrationId;
+		organizationId = url.searchParams.get("organization_id") || organizationId;
+		registrationId = url.searchParams.get("registration_id") || registrationId;
 	}
 
 	// Redirect to Qonto OAuth consent screen

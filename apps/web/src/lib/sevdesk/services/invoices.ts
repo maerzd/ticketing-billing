@@ -42,7 +42,7 @@ export interface CreateInvoiceDraftInput {
 }
 
 export class SevdeskInvoicesService {
-	constructor(private readonly client: SevdeskClient) { }
+	constructor(private readonly client: SevdeskClient) {}
 
 	private toPercentageString(value: number) {
 		if (value < 0 || value > 100) {
@@ -191,9 +191,9 @@ export class SevdeskInvoicesService {
 		const posToDelete =
 			existingPositions.length > 0
 				? {
-					id: existingPositions.map((p) => p.id).join(","),
-					objectName: "InvoicePos",
-				}
+						id: existingPositions.map((p) => p.id).join(","),
+						objectName: "InvoicePos",
+					}
 				: undefined;
 
 		const contactRef = SevdeskInputRefSchema.parse({
