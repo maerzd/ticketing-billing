@@ -16,6 +16,7 @@ export async function createSevdeskInvoiceDraft(
 
 		return { success: true as const, data: invoice };
 	} catch (error) {
+		console.log(error);
 		const message =
 			error instanceof AppError || error instanceof Error
 				? error.message

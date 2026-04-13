@@ -2,13 +2,13 @@ import { z } from "zod";
 
 /** Shared inline reference used throughout sevdesk API payloads */
 export const SevdeskInputRefSchema = z.object({
-	id: z.number().int(),
+	id: z.string(),
 	objectName: z.string(),
 });
 
 /** Shared inline reference returned in sevdesk API responses */
 export const SevdeskResponseRefSchema = z.object({
-	id: z.string(),
+	id: z.coerce.string(),
 	objectName: z.string(),
 });
 
@@ -56,7 +56,7 @@ export const SevdeskContactCreateSchema = z.object({
 });
 
 export const SevdeskContactResponseSchema = z.object({
-	id: z.string(),
+	id: z.coerce.string(),
 	objectName: z.literal("Contact"),
 	// sevdesk often returns "YYYY-MM-DD HH:mm:ss" (non-ISO), so keep these lenient.
 	create: z.string().optional(),

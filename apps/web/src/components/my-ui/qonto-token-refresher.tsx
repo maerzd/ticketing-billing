@@ -23,15 +23,24 @@ export function QontoTokenRefresher() {
 			}
 		};
 
+		const onVisibilityChange = () => {
+			if (document.visibilityState === "visible") {
+				void refresh();
+			}
+		};
+
 		void refresh();
 		intervalId = setInterval(() => {
 			void refresh();
 		}, REFRESH_INTERVAL_MS);
 
+		document.addEventListener("visibilitychange", onVisibilityChange);
+
 		return () => {
 			if (intervalId) {
 				clearInterval(intervalId);
 			}
+			document.removeEventListener("visibilitychange", onVisibilityChange);
 		};
 	}, []);
 

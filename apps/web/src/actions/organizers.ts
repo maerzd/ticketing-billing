@@ -18,6 +18,8 @@ import { SevdeskContactsService } from "@/lib/sevdesk/services/contacts";
 import { getVivenuHubbleToken } from "@/lib/vivenu/auth";
 import { VivenuClient } from "@/lib/vivenu/client";
 import { VivenuAttributesService } from "@/lib/vivenu/services/attributes";
+import { WorkosClient } from "@/lib/workos/client";
+import { WorkosOrganizationsService } from "@/lib/workos/services/organizations";
 
 const revalidateOrganizers = () => {
 	revalidatePath("/organizers");
@@ -57,6 +59,7 @@ const enrichCreatePersistenceError = (
 	ids: {
 		beneficiaryId?: string;
 		sevdeskContactId?: string;
+		workosOrganizationId?: string;
 	},
 ): never => {
 	const message = getErrorMessage(error, "Failed to create organizer");
@@ -68,6 +71,12 @@ const enrichCreatePersistenceError = (
 
 	if (ids.beneficiaryId) {
 		sideEffects.push(`Qonto beneficiary was created (${ids.beneficiaryId})`);
+	}
+
+	if (ids.workosOrganizationId) {
+		sideEffects.push(
+			`WorkOS organization was created (${ids.workosOrganizationId})`,
+		);
 	}
 
 	const prefix =
@@ -88,9 +97,11 @@ const enrichExternalCreationError = (
 		failedStep:
 			| "Qonto beneficiary"
 			| "Sevdesk contact"
+			| "WorkOS organization"
 			| "Vivenu organizer attribute";
 		beneficiaryId?: string;
 		sevdeskContactId?: string;
+		workosOrganizationId?: string;
 	},
 ): never => {
 	const message = getErrorMessage(
@@ -108,6 +119,12 @@ const enrichExternalCreationError = (
 	if (context.beneficiaryId) {
 		sideEffects.push(
 			`Qonto beneficiary was created (${context.beneficiaryId})`,
+		);
+	}
+
+	if (context.workosOrganizationId) {
+		sideEffects.push(
+			`WorkOS organization was created (${context.workosOrganizationId})`,
 		);
 	}
 
@@ -141,6 +158,10 @@ export async function createOrganizer(input: CreateOrganizerInput) {
 		const beneficiariesService = new BeneficiariesService(qontoClient);
 		const sevdeskClient = new SevdeskClient();
 		const sevdeskContactsService = new SevdeskContactsService(sevdeskClient);
+		const workosClient = new WorkosClient();
+		const workosOrganizationsService = new WorkosOrganizationsService(
+			workosClient,
+		);
 		const vivenuToken = await getVivenuHubbleToken();
 		const vivenuClient = new VivenuClient({ accessToken: vivenuToken });
 		const vivenuAttributesService = new VivenuAttributesService(vivenuClient);
@@ -202,16 +223,33 @@ export async function createOrganizer(input: CreateOrganizerInput) {
 						);
 				})();
 
+		const workosOrg = parsed.workosOrganizationId
+			? { organizationId: parsed.workosOrganizationId }
+			: await workosOrganizationsService
+					.createOrganization({
+						name: parsed.name ?? parsed.organizerId,
+						externalId: parsed.organizerId,
+					})
+					.catch((error) =>
+						enrichExternalCreationError(error, {
+							failedStep: "WorkOS organization",
+							beneficiaryId: beneficiary?.id,
+							sevdeskContactId: sevdeskContact?.contactId,
+						}),
+					);
+
 		const created: OrganizerRecord = await organizersService
 			.createOrganizer({
 				...parsed,
 				sevdeskContactId: sevdeskContact?.contactId,
 				qontoBeneficiaryId: beneficiary?.id,
+				workosOrganizationId: workosOrg.organizationId,
 			})
 			.catch((error) =>
 				enrichCreatePersistenceError(error, {
 					sevdeskContactId: sevdeskContact?.contactId,
 					beneficiaryId: beneficiary?.id,
+					workosOrganizationId: workosOrg.organizationId,
 				}),
 			);
 
@@ -222,6 +260,7 @@ export async function createOrganizer(input: CreateOrganizerInput) {
 					failedStep: "Vivenu organizer attribute",
 					beneficiaryId: beneficiary?.id,
 					sevdeskContactId: sevdeskContact?.contactId,
+					workosOrganizationId: workosOrg.organizationId,
 				}),
 			);
 
@@ -256,6 +295,10 @@ export async function updateOrganizer(input: UpdateOrganizerInput) {
 		const beneficiariesService = new BeneficiariesService(qontoClient);
 		const sevdeskClient = new SevdeskClient();
 		const sevdeskContactsService = new SevdeskContactsService(sevdeskClient);
+		const workosClient = new WorkosClient();
+		const workosOrganizationsService = new WorkosOrganizationsService(
+			workosClient,
+		);
 		const vivenuToken = await getVivenuHubbleToken();
 		const vivenuClient = new VivenuClient({ accessToken: vivenuToken });
 		const vivenuAttributesService = new VivenuAttributesService(vivenuClient);
@@ -356,6 +399,31 @@ export async function updateOrganizer(input: UpdateOrganizerInput) {
 				}),
 			);
 
+		// WorkOS: create organization if not yet linked, update name otherwise
+		const existingWorkosId =
+			existing.workosOrganizationId ?? input.workosOrganizationId;
+		const workosOrg = existingWorkosId
+			? await workosOrganizationsService
+					.updateOrganization({
+						organizationId: existingWorkosId,
+						name: input.name ?? existing.name,
+					})
+					.catch((error) =>
+						enrichExternalCreationError(error, {
+							failedStep: "WorkOS organization",
+						}),
+					)
+			: await workosOrganizationsService
+					.createOrganization({
+						name: input.name ?? existing.name ?? input.organizerId,
+						externalId: input.organizerId,
+					})
+					.catch((error) =>
+						enrichExternalCreationError(error, {
+							failedStep: "WorkOS organization",
+						}),
+					);
+
 		const sanitizedInput = Object.fromEntries(
 			Object.entries(input).filter(([, value]) => value !== undefined),
 		);
@@ -366,6 +434,7 @@ export async function updateOrganizer(input: UpdateOrganizerInput) {
 				organizerId: input.organizerId,
 				qontoBeneficiaryId,
 				sevdeskContactId: sevdeskContact.contactId,
+				workosOrganizationId: workosOrg.organizationId,
 			})
 			.catch((error) =>
 				enrichCreatePersistenceError(error, {
@@ -375,6 +444,9 @@ export async function updateOrganizer(input: UpdateOrganizerInput) {
 							: undefined,
 					sevdeskContactId: !existing.sevdeskContactId
 						? sevdeskContact.contactId
+						: undefined,
+					workosOrganizationId: !existing.workosOrganizationId
+						? workosOrg.organizationId
 						: undefined,
 				}),
 			);

@@ -1,5 +1,9 @@
 "use client";
-import type { OrganizerRecord } from "@ticketing-billing/types/ddb";
+import type { VivenuEvent } from "@ticketing-billing/types";
+import type {
+	BillingRecord,
+	OrganizerRecord,
+} from "@ticketing-billing/types/ddb";
 import type { PosDevice } from "@ticketing-billing/types/vivenu/pos";
 import type { RevenueResponse } from "@ticketing-billing/types/vivenu/revenue";
 import type { TicketSales } from "@ticketing-billing/types/vivenu/ticket-sales";
@@ -8,7 +12,7 @@ import LabelText from "@/components/my-ui/label-text";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { ZUENFTICK_SHOP_IDS } from "@/lib/constants";
+import { TICKET_COMMISSION_RATE, ZUENFTICK_SHOP_IDS } from "@/lib/constants";
 import type { OrganizerData } from "@/lib/notion/notion-types";
 import Invoice from "./invoice";
 
@@ -35,27 +39,44 @@ const calculateRevenuePerPosId = (
 };
 
 export default function RevenueTable({
+	event,
 	ticketAnalytics,
 	revenue,
 	pos,
 	organizer,
-	eventStartDate,
-	organizerRecord,
+	billingRecord,
 }: {
+	event: VivenuEvent;
 	ticketAnalytics: TicketSales | null;
 	revenue: RevenueResponse | null;
 	pos: PosDevice[] | null;
-	organizer: OrganizerData | null;
-	eventStartDate: string;
-	organizerRecord?: OrganizerRecord | null;
+	organizer: OrganizerRecord | null;
+	billingRecord?: BillingRecord;
 }) {
 	const revenuePerPos = calculateRevenuePerPosId(revenue);
-	const [setupFee, setSetupFee] = React.useState(25);
+
+	// Initialize settings from billing record snapshot if available, else fallback to organizer defaults
+	const isLocked = billingRecord && billingRecord.invoiceStatus !== "DRAFT";
+
+	const [setupFee, setSetupFee] = React.useState(
+		billingRecord
+			? billingRecord.setupFee / 100
+			: (organizer?.defaultSetupFee ?? 25) / 100,
+	);
 	const [eventTaxValue, setEventTaxValue] = React.useState(
-		organizer?.taxRate || 0,
+		billingRecord
+			? billingRecord.eventTaxRate
+			: (organizer?.defaultEventTaxRate ?? organizer?.taxRate ?? 0),
+	);
+	const [ticketCommissionRate] = React.useState(
+		billingRecord
+			? billingRecord.ticketCommissionRate
+			: (organizer?.defaultTicketCommissionRate ?? TICKET_COMMISSION_RATE),
 	);
 	const [officialPos, setOfficialPos] = React.useState<Set<string>>(
-		new Set(ZUENFTICK_SHOP_IDS),
+		billingRecord
+			? new Set(billingRecord.officialPos)
+			: new Set(ZUENFTICK_SHOP_IDS),
 	);
 
 	const ticketsCount =
@@ -70,45 +91,55 @@ export default function RevenueTable({
 
 	return (
 		<div>
-			<h3 className="font-semibold">Einstellungen</h3>
-			<div className="grid grid-cols-2 grid-rows-2 gap-4">
-				<LabelText
-					label="Steuersatz der Veranstaltung"
-					value={
-						<TaxSelector
-							eventTaxValue={eventTaxValue}
-							setEventTaxValue={setEventTaxValue}
+			{!isLocked && (
+				<>
+					<h3 className="font-semibold">Einstellungen</h3>
+					<div className="grid grid-cols-2 grid-rows-2 gap-4">
+						<LabelText
+							label="Steuersatz der Veranstaltung"
+							value={
+								<TaxSelector
+									eventTaxValue={eventTaxValue}
+									setEventTaxValue={setEventTaxValue}
+								/>
+							}
 						/>
-					}
-				/>
-				<LabelText
-					label="POS Umsatz (für Auszahlung auswählen)"
-					value={
-						<PosSelector
-							revenuePerPos={revenuePerPos}
-							pos={pos}
-							selectedPos={officialPos}
-							setSelectedPos={setOfficialPos}
+						<LabelText
+							label="POS Umsatz (für Auszahlung auswählen)"
+							value={
+								<PosSelector
+									revenuePerPos={revenuePerPos}
+									pos={pos}
+									selectedPos={officialPos}
+									setSelectedPos={setOfficialPos}
+								/>
+							}
+							className="row-span-2"
 						/>
-					}
-					className="row-span-2"
-				/>
-				<LabelText
-					label="Einrichtungsgebühr"
-					value={
-						<SetupFeeSelector setupFee={setupFee} setSetupFee={setSetupFee} />
-					}
-				/>
-			</div>
+						<LabelText
+							label="Einrichtungsgebühr"
+							value={
+								<SetupFeeSelector
+									setupFee={setupFee}
+									setSetupFee={setSetupFee}
+								/>
+							}
+						/>
+					</div>
+				</>
+			)}
+
 			<Invoice
+				event={event}
 				totalRevenue={totalRevenue}
 				ticketsCount={ticketsCount}
 				officialPos={officialPos}
 				revenuePerPos={revenuePerPos}
 				eventTaxRate={eventTaxValue}
 				setupFee={setupFee}
-				eventStartDate={eventStartDate}
-				organizerRecord={organizerRecord}
+				ticketCommissionRate={ticketCommissionRate}
+				organizer={organizer}
+				billingRecord={billingRecord}
 			/>
 		</div>
 	);

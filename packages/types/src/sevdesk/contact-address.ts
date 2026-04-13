@@ -23,7 +23,7 @@ export const SevdeskContactAddressCreateSchema = z.object({
 });
 
 export const SevdeskContactAddressResponseSchema = z.object({
-	id: z.string(),
+	id: z.coerce.string(),
 	objectName: z.literal("ContactAddress"),
 	// sevdesk returns "YYYY-MM-DD HH:mm:ss" (non-ISO), so keep these lenient.
 	create: z.string().optional(),

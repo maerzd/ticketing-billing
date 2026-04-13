@@ -8,6 +8,7 @@ import { refreshAccessToken } from "@/lib/qonto/oauth";
 const ACCESS_TOKEN_COOKIE = "qonto_access_token";
 const REFRESH_TOKEN_COOKIE = "qonto_refresh_token";
 const TOKEN_EXPIRY_COOKIE = "qonto_token_expiry";
+const OAUTH_STATE_COOKIE = "qonto_oauth_state";
 
 function isCookieMutationNotAllowedError(error: unknown): boolean {
 	if (!(error instanceof Error)) {
@@ -82,6 +83,9 @@ export async function getAccessToken(): Promise<string> {
 				if (!isCookieMutationNotAllowedError(error)) {
 					throw error;
 				}
+				console.warn(
+					"Qonto token refreshed but cookies could not be updated (Server Component context). The client-side refresher will persist the new tokens.",
+				);
 			}
 		} catch (_error) {
 			// If refresh fails, clear cookies and throw error
@@ -107,6 +111,30 @@ export async function clearAuthTokens() {
 	cookieStore.delete(ACCESS_TOKEN_COOKIE);
 	cookieStore.delete(REFRESH_TOKEN_COOKIE);
 	cookieStore.delete(TOKEN_EXPIRY_COOKIE);
+}
+
+/**
+ * Store the OAuth state parameter in a short-lived cookie for CSRF validation.
+ */
+export async function setOAuthState(state: string) {
+	const cookieStore = await cookies();
+	cookieStore.set(OAUTH_STATE_COOKIE, state, {
+		httpOnly: true,
+		secure: process.env.NODE_ENV === "production",
+		sameSite: "lax",
+		maxAge: 300, // 5 minutes
+		path: "/",
+	});
+}
+
+/**
+ * Read and delete the OAuth state cookie. Returns null if missing.
+ */
+export async function getAndClearOAuthState(): Promise<string | null> {
+	const cookieStore = await cookies();
+	const state = cookieStore.get(OAUTH_STATE_COOKIE)?.value ?? null;
+	cookieStore.delete(OAUTH_STATE_COOKIE);
+	return state;
 }
 
 /**

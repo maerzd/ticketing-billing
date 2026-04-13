@@ -14,31 +14,35 @@ export const SevdeskInvoicePosCreateSchema = z.object({
 	objectName: z.literal("InvoicePos"),
 	mapAll: z.literal(true),
 	quantity: z.number(),
-	taxRate: z.number(),
+	taxRate: z.string(),
 	unity: SevdeskInputRefSchema,
 	name: z.string().nullable().optional(),
 	text: z.string().nullable().optional(),
 	price: z.number().nullable().optional(),
+	priceNet: z.number().nullable().optional(),
 	priceGross: z.number().nullable().optional(),
 	priceTax: z.number().nullable().optional(),
 	discount: z.number().nullable().optional(),
 	positionNumber: z.number().int().nullable().optional(),
 	part: SevdeskInputRefSchema.optional(),
 	/** Required when updating an existing position */
-	id: z.number().int().nullable().optional(),
+	id: z.string().nullable().optional(),
 });
 
 export const SevdeskInvoicePosResponseSchema = z.object({
-	id: z.string(),
+	id: z.coerce.string(),
 	objectName: z.literal("InvoicePos"),
-	create: z.string().datetime().optional(),
-	update: z.string().datetime().optional(),
-	quantity: z.number().nullable().optional(),
+	create: z.string().nullable().optional(),
+	update: z.string().nullable().optional(),
+	quantity: z.preprocess(
+		(val) => (typeof val === "boolean" ? Number(val) : val),
+		z.number().nullable().optional(),
+	),
 	price: z.number().nullable().optional(),
 	name: z.string().nullable().optional(),
 	text: z.string().nullable().optional(),
 	discount: z.number().nullable().optional(),
-	taxRate: z.number().nullable().optional(),
+	taxRate: z.string().nullable().optional(),
 	positionNumber: z.number().int().nullable().optional(),
 	priceNet: z.number().nullable().optional(),
 	priceGross: z.number().nullable().optional(),
@@ -58,7 +62,7 @@ export const SevdeskSaveInvoiceSchema = z.object({
 	invoicePosSave: z.array(SevdeskInvoicePosCreateSchema),
 	invoicePosDelete: z
 		.object({
-			id: z.number().int(),
+			id: z.string(),
 			objectName: z.string(),
 		})
 		.nullable()
@@ -73,8 +77,15 @@ export const SevdeskSaveInvoiceResponseSchema = z.object({
 	}),
 });
 
+export const SevdeskInvoicePositionsResponseSchema = z.object({
+	objects: z.array(SevdeskInvoicePosResponseSchema),
+});
+
 export type SevdeskInvoicePosCreate = z.infer<
 	typeof SevdeskInvoicePosCreateSchema
 >;
 export type SevdeskInvoicePos = z.infer<typeof SevdeskInvoicePosResponseSchema>;
 export type SevdeskSaveInvoice = z.infer<typeof SevdeskSaveInvoiceSchema>;
+export type SevdeskInvoicePositionsResponse = z.infer<
+	typeof SevdeskInvoicePositionsResponseSchema
+>;

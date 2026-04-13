@@ -1,9 +1,11 @@
 import { getAccessToken } from "@/lib/auth";
-import { AppError } from "@/lib/errors";
+import { AppError, UnauthorizedError } from "@/lib/errors";
 import { QontoClient } from "@/lib/qonto/client";
 import { BeneficiariesService } from "@/lib/qonto/services/beneficiaries";
 import { OrganizationService } from "@/lib/qonto/services/organization";
 import { TransfersService } from "@/lib/qonto/services/transfers";
+
+export type QueryErrorCode = "UNAUTHORIZED" | "ERROR";
 
 const extractErrorMessage = (error: unknown, fallback: string) => {
 	if (error instanceof AppError) {
@@ -16,6 +18,9 @@ const extractErrorMessage = (error: unknown, fallback: string) => {
 
 	return fallback;
 };
+
+const getErrorCode = (error: unknown): QueryErrorCode =>
+	error instanceof UnauthorizedError ? "UNAUTHORIZED" : "ERROR";
 
 export async function queryOrganization() {
 	try {
@@ -37,6 +42,7 @@ export async function queryOrganization() {
 		return {
 			success: false,
 			error: message,
+			errorCode: getErrorCode(error),
 		} as const;
 	}
 }
@@ -61,6 +67,7 @@ export async function queryTransfers(page: number = 1) {
 		return {
 			success: false,
 			error: message,
+			errorCode: getErrorCode(error),
 		} as const;
 	}
 }
@@ -85,6 +92,7 @@ export async function queryBeneficiaries(page: number = 1) {
 		return {
 			success: false,
 			error: message,
+			errorCode: getErrorCode(error),
 		} as const;
 	}
 }

@@ -95,7 +95,7 @@ export class SevdeskContactsService {
 			.then((response) => response.objects);
 
 		const contactRef = SevdeskInputRefSchema.parse({
-			id: this.toNumericId(company.id, "contact"),
+			id: company.id,
 			objectName: "Contact",
 		});
 
@@ -164,7 +164,7 @@ export class SevdeskContactsService {
 			.then((response) => response.objects);
 
 		const contactRef = SevdeskInputRefSchema.parse({
-			id: this.toNumericId(sevdeskContactId, "contact"),
+			id: sevdeskContactId,
 			objectName: "Contact",
 		});
 
@@ -175,7 +175,7 @@ export class SevdeskContactsService {
 					objects: z.array(
 						z.object({
 							addresses: z
-								.array(z.object({ id: z.string() }))
+								.array(z.object({ id: z.coerce.string() }))
 								.optional()
 								.default([]),
 						}),
@@ -219,7 +219,7 @@ export class SevdeskContactsService {
 			.get(
 				"/Contact",
 				z.object({
-					objects: z.array(z.object({ id: z.string() })),
+					objects: z.array(z.object({ id: z.coerce.string() })),
 				}),
 				{
 					"parent[id]": this.toNumericId(sevdeskContactId, "contact"),

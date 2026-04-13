@@ -55,7 +55,14 @@ export const OrganizerRecordSchema = z.object({
 	bic: z.string().min(1, "BIC ist erforderlich").optional(),
 	sevdeskContactId: z.string().optional(),
 	qontoBeneficiaryId: z.string().optional(),
+	workosOrganizationId: z.string().optional(),
 	feeOverride: OrganizerFeeOverrideSchema.optional(),
+	/** Default event tax rate (0–1), e.g. 0.07 for 7% */
+	defaultEventTaxRate: z.number().min(0).max(1).optional(),
+	/** Default setup fee in cents, e.g. 2500 for €25.00 */
+	defaultSetupFee: z.number().int().min(0).optional(),
+	/** Default ticket commission rate (0–1), e.g. 0.10 for 10% */
+	defaultTicketCommissionRate: z.number().min(0).max(1).optional(),
 	status: OrganizerStatusSchema.default("ACTIVE"),
 	createdAt: z.iso.datetime(),
 	updatedAt: z.iso.datetime(),
