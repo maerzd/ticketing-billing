@@ -111,7 +111,7 @@ export default function Invoice({
 	officialPos,
 	revenuePerPos,
 	eventTaxRate = 0,
-	setupFee = 25,
+	setupFee = 2500,
 	ticketCommissionRate = TICKET_COMMISSION_RATE,
 	billingRecord: initialBillingRecord,
 }: {

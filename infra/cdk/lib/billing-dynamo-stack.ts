@@ -5,7 +5,11 @@ import {
 	Table,
 	TableEncryption,
 } from "aws-cdk-lib/aws-dynamodb";
+import * as ssm from "aws-cdk-lib/aws-ssm";
 import type { Construct } from "constructs";
+
+export const SSM_ORGANIZERS_TABLE = "/ticketing-billing/dynamodb/organizers-table-name";
+export const SSM_BILLING_RECORDS_TABLE = "/ticketing-billing/dynamodb/billing-records-table-name";
 
 export class BillingDynamoStack extends cdk.Stack {
 	public readonly organizersTable: Table;
@@ -66,22 +70,16 @@ export class BillingDynamoStack extends cdk.Stack {
 			projectionType: cdk.aws_dynamodb.ProjectionType.ALL,
 		});
 
-		new cdk.CfnOutput(this, "OrganizersTableName", {
-			value: this.organizersTable.tableName,
-			exportName: "OrganizersTableName",
+		new ssm.StringParameter(this, "OrganizersTableNameParam", {
+			parameterName: SSM_ORGANIZERS_TABLE,
+			stringValue: this.organizersTable.tableName,
+			description: "DynamoDB Organizers table name",
 		});
 
-		new cdk.CfnOutput(this, "BillingRecordsTableName", {
-			value: this.billingRecordsTable.tableName,
-			exportName: "BillingRecordsTableName",
-		});
-
-		new cdk.CfnOutput(this, "DynamoDbOrganizersEnvVar", {
-			value: "DYNAMODB_ORGANIZERS_TABLE=Organizers",
-		});
-
-		new cdk.CfnOutput(this, "DynamoDbBillingRecordsEnvVar", {
-			value: "DYNAMODB_BILLING_RECORDS_TABLE=BillingRecords",
+		new ssm.StringParameter(this, "BillingRecordsTableNameParam", {
+			parameterName: SSM_BILLING_RECORDS_TABLE,
+			stringValue: this.billingRecordsTable.tableName,
+			description: "DynamoDB BillingRecords table name",
 		});
 	}
 }

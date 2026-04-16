@@ -165,8 +165,7 @@ export class BillingRecordsService {
 			new QueryCommand({
 				TableName: this.tableName,
 				IndexName: "EventIndex",
-				KeyConditionExpression: "#eventId = :eventId",
-				ExpressionAttributeNames: { "#eventId": "eventId" },
+				KeyConditionExpression: "eventId = :eventId",
 				ExpressionAttributeValues: { ":eventId": eventId },
 				Limit: 1,
 			}),

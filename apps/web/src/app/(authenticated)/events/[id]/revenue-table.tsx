@@ -61,7 +61,7 @@ export default function RevenueTable({
 	const [setupFee, setSetupFee] = React.useState(
 		billingRecord
 			? billingRecord.setupFee / 100
-			: (organizer?.defaultSetupFee ?? 25) / 100,
+			: (organizer?.defaultSetupFee ?? 2500) / 100,
 	);
 	const [eventTaxValue, setEventTaxValue] = React.useState(
 		billingRecord
