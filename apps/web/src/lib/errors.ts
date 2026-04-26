@@ -1,7 +1,7 @@
-import type {
-	QontoAPIError,
-	QontoOAuthError,
-} from "@ticketing-billing/types/qonto/qonto";
+interface QontoOAuthError {
+	error: string;
+	error_description?: string;
+}
 
 export class AppError extends Error {
 	public readonly statusCode: number;
@@ -22,23 +22,6 @@ export class OAuthError extends AppError {
 		this.name = "OAuthError";
 		this.code = error?.error;
 		this.description = error?.error_description;
-	}
-}
-
-export class QontoAPIErrorHandler extends AppError {
-	public readonly apiErrors: QontoAPIError["errors"];
-
-	constructor(message: string, errors?: QontoAPIError["errors"]) {
-		super(message, 400);
-		this.name = "QontoAPIError";
-		this.apiErrors = errors || [];
-	}
-
-	static fromAPIResponse(
-		errors: QontoAPIError["errors"],
-	): QontoAPIErrorHandler {
-		const message = errors[0]?.detail || "Unknown Qonto API error";
-		return new QontoAPIErrorHandler(message, errors);
 	}
 }
 

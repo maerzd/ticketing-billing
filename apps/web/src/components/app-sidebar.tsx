@@ -1,7 +1,7 @@
 "use client";
 
-import type { QontoOrganization } from "@ticketing-billing/types/qonto/organization";
 import {
+	ArrowLeftRight,
 	BanknoteArrowUp,
 	Building2,
 	CalendarCheck,
@@ -23,7 +23,6 @@ import {
 } from "@/components/ui/sidebar";
 
 interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
-	organization?: QontoOrganization;
 	user?: {
 		name: string;
 		email: string;
@@ -31,11 +30,7 @@ interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
 	};
 }
 
-export function AppSidebar({
-	organization,
-	user,
-	...props
-}: Readonly<AppSidebarProps>) {
+export function AppSidebar({ user, ...props }: Readonly<AppSidebarProps>) {
 	// Navigation structure
 	const navMain = [
 		{
@@ -57,6 +52,11 @@ export function AppSidebar({
 			title: "POS",
 			url: "/pos",
 			icon: Store,
+		},
+		{
+			title: "Transaktionen",
+			url: "/banking/transactions",
+			icon: ArrowLeftRight,
 		},
 		{
 			title: "Transfers",
