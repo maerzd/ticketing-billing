@@ -35,8 +35,9 @@ import {
 import { calculateBillingAmounts } from "@/lib/billing-calculator";
 import { SALES_TAX_RATE, TICKET_COMMISSION_RATE } from "@/lib/constants";
 import { formatCurrency } from "@/lib/utils";
+import InvoiceFooter from "./invoice-footer";
 
-interface InvoiceData {
+export interface InvoiceData {
 	items: {
 		label: string;
 		netValue: number;
@@ -619,7 +620,7 @@ export default function Invoice({
 			)}
 			<div className="mt-6 rounded-xl bg-muted/50 p-4 ring-1 ring-muted">
 				<div ref={invoiceTextRef}>
-					<InvoiceTextTable invoiceData={invoiceData} />
+					<InvoiceFooter invoiceData={invoiceData} />
 				</div>
 			</div>
 
@@ -635,105 +636,5 @@ export default function Invoice({
 				/>
 			)}
 		</>
-	);
-}
-
-function InvoiceTextTable({ invoiceData }: { invoiceData: InvoiceData }) {
-	return (
-		<div style={{ fontSize: "14px" }}>
-			<p style={{ fontSize: "14px", pageBreakAfter: "always" }}>
-				Auf der folgenden Seite finden Sie eine Abrechnungsübersicht.
-			</p>
-			<p style={{ fontSize: "14px" }}>
-				Die Einnahmen der Veranstaltung setzen sich zusammen aus:{" "}
-			</p>
-			<table style={{ width: "100%", borderCollapse: "collapse" }}>
-				<thead>
-					<tr>
-						<th
-							style={{ textAlign: "left", padding: "4px 0", minWidth: "500px" }}
-						>
-							Beschreibung
-						</th>
-						<th style={{ textAlign: "right", padding: "4px 0" }}>Betrag</th>
-					</tr>
-					<tr>
-						<td colSpan={2} style={{ borderBottom: "1px solid #d3d3d3" }} />
-					</tr>
-				</thead>
-				<tbody>
-					{invoiceData.payoutItems.map(
-						(item) =>
-							item.value > 0 && (
-								<tr key={item.label}>
-									<td style={{ padding: "4px 0" }}>{item.label}</td>
-									<td style={{ padding: "4px 0", textAlign: "right" }}>
-										{item.amount}
-									</td>
-								</tr>
-							),
-					)}
-					<tr>
-						<td colSpan={2} style={{ borderBottom: "1px solid #d3d3d3" }} />
-					</tr>
-					<tr style={{ fontWeight: "bold" }}>
-						<td
-							style={{
-								textAlign: "right",
-								padding: "4px 0",
-								paddingRight: "16px",
-							}}
-						>
-							Gesamteinnahmen
-						</td>
-						<td style={{ padding: "4px 0", textAlign: "right" }}>
-							{formatCurrency(invoiceData.totalRevenue)}
-						</td>
-					</tr>
-					<tr>
-						<td style={{ padding: "4px 0" }}>
-							abzgl. Gebühren (Rechnungsbetrag)
-						</td>
-						<td style={{ padding: "4px 0", textAlign: "right" }}>
-							{formatCurrency(invoiceData.invoiceAmount)}
-						</td>
-					</tr>
-					{invoiceData.revenueOrganizer > 0 && (
-						<tr>
-							<td style={{ padding: "4px 0" }}>
-								abzgl. Einnahmen über die eigene Kasse des Veranstalters
-							</td>
-							<td style={{ padding: "4px 0", textAlign: "right" }}>
-								{formatCurrency(invoiceData.revenueOrganizer)}
-							</td>
-						</tr>
-					)}
-					<tr>
-						<td colSpan={2} style={{ borderBottom: "1px solid #d3d3d3" }} />
-					</tr>
-					<tr style={{ fontWeight: "bold" }}>
-						<td
-							style={{
-								textAlign: "right",
-								padding: "4px 0",
-								paddingRight: "16px",
-							}}
-						>
-							Auszahlungsbetrag
-						</td>
-						<td style={{ padding: "4px 0", textAlign: "right" }}>
-							{formatCurrency(invoiceData.payoutAmount)}
-						</td>
-					</tr>
-				</tbody>
-			</table>
-			<br />
-			<p style={{ fontSize: "14px" }}>
-				Wir überweisen den Auszahlungsbetrag von{" "}
-				{formatCurrency(invoiceData.payoutAmount)} auf Ihr Konto. Bitte nehmen
-				Sie keine Überweisung vor, die obenstehende Rechnung muss nicht
-				beglichen werden.
-			</p>
-		</div>
 	);
 }
