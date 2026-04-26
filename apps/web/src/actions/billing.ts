@@ -1,14 +1,13 @@
 "use server";
 
+import { organizations } from "@qonto/embed-sdk/server/organizations";
+import { sepaTransfers } from "@qonto/embed-sdk/server/sepa-transfers";
 import type { BillingRecord } from "@ticketing-billing/types/ddb";
 import { revalidatePath } from "next/cache";
 import { getAccessToken } from "@/lib/auth";
 import { calculateBillingAmounts } from "@/lib/billing-calculator";
 import { BillingRecordsService } from "@/lib/dynamodb/services/billing-records";
 import { AppError } from "@/lib/errors";
-import { QontoClient } from "@/lib/qonto/client";
-import { OrganizationService } from "@/lib/qonto/services/organization";
-import { TransfersService } from "@/lib/qonto/services/transfers";
 import { ResendEmailService } from "@/lib/resend/services/email";
 import { SevdeskClient } from "@/lib/sevdesk/client";
 import { SevdeskInvoicesService } from "@/lib/sevdesk/services/invoices";
@@ -391,7 +390,8 @@ export interface InitiatePayoutInput {
 	organizerId: string;
 	eventId: string;
 	beneficiaryId: string;
-	vopProofToken: string;
+	iban: string;
+	beneficiaryName: string;
 	bankAccountId: string;
 }
 
@@ -424,23 +424,38 @@ export async function initiateBillingPayout(input: InitiatePayoutInput) {
 		}
 
 		const accessToken = await getAccessToken();
-		const qontoClient = new QontoClient({ accessToken });
-		const transfersService = new TransfersService(qontoClient);
 
-		const transfer = await transfersService.createTransfer({
-			beneficiary_id: input.beneficiaryId,
-			amount_in_cents: record.payoutAmountCents,
-			label: `Auszahlung ${record.eventName}`,
-			reference: `Veranstaltung: ${record.eventName}`,
-			vop_proof_token: input.vopProofToken,
-			bank_account_id: input.bankAccountId,
+		// Use SDK createSepaTransfer generator (handles VoP + transfer in one flow)
+		const generator = sepaTransfers.createSepaTransfer({
+			sepaTransferSettings: {
+				bankAccountId: input.bankAccountId,
+				beneficiaryId: input.beneficiaryId,
+				amount: record.payoutAmountCents / 100,
+				reference: `Veranstaltung: ${record.eventName}`,
+				note: `Auszahlung ${record.eventName}`,
+			},
+			operationSettings: { accessToken },
 		});
+
+		// Step 1: VoP check
+		await generator.next();
+
+		// Step 2: Accept VoP and create transfer
+		const transferResult = await generator.next({ vopDecision: "ACCEPT" });
+		const response = transferResult.value as
+			| import("@qonto/embed-sdk/server/sepa-transfers").CreateSepaTransferResponse
+			| undefined;
+		const transferId = response?.transfer.id;
+
+		if (!transferId) {
+			throw new AppError("Transfer creation returned no ID", 500);
+		}
 
 		const updated = await billingRecordsService.updateBillingRecord({
 			organizerId: input.organizerId,
 			eventId: input.eventId,
 			payoutStatus: "INITIATED",
-			qontoTransferId: transfer.id,
+			qontoTransferId: transferId,
 			payoutInitiatedAt: new Date().toISOString(),
 		});
 
@@ -459,13 +474,13 @@ export async function initiateBillingPayout(input: InitiatePayoutInput) {
 export async function fetchQontoBankAccounts() {
 	try {
 		const accessToken = await getAccessToken();
-		const qontoClient = new QontoClient({ accessToken });
-		const orgService = new OrganizationService(qontoClient);
-		const org = await orgService.getOrganization();
+		const bankAccounts = await organizations.getBankAccounts({
+			operationSettings: { accessToken },
+		});
 
 		return {
 			success: true as const,
-			data: org.organization.bank_accounts,
+			data: bankAccounts,
 		};
 	} catch (error) {
 		return actionError(error, "Failed to fetch bank accounts");

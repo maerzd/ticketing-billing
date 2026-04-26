@@ -84,7 +84,7 @@ export default async function Page({ params }: { params: Promise<PageParam> }) {
 						/>
 						<LabelText
 							label="Steuersatz Veranstalter"
-							value={`${organizer?.taxRate ?? "??"}%`}
+							value={`${organizer?.taxRate !== undefined ? organizer.taxRate * 100 : "??"}%`}
 							className="col-span-1"
 						/>
 					</CardContent>

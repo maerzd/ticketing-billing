@@ -1,14 +1,9 @@
 "use client";
 
-import type { QontoSepaBeneficiary } from "@ticketing-billing/types/qonto/beneficiaries";
-import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import type { Beneficiary } from "@qonto/embed-sdk/beneficiaries";
+import { beneficiaries } from "@qonto/embed-sdk/beneficiaries";
+import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
-import {
-	trustSepaBeneficiaries,
-	untrustSepaBeneficiaries,
-} from "@/actions/beneficiaries";
-import { BeneficiaryCreateDialog } from "@/components/forms/BeneficiaryCreateDialog";
 import { Button } from "@/components/ui/button";
 import {
 	Card,
@@ -25,11 +20,7 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
-
-interface BeneficiariesManagerProps {
-	beneficiaries: QontoSepaBeneficiary[];
-	totalCount: number;
-}
+import { BeneficiaryCreateDialog } from "@/components/forms/BeneficiaryCreateDialog";
 
 const getStatusLabel = (status: string) => {
 	switch (status) {
@@ -55,35 +46,49 @@ const getStatusClassName = (status: string) => {
 	}
 };
 
-export function BeneficiariesManager({
-	beneficiaries,
-	totalCount,
-}: Readonly<BeneficiariesManagerProps>) {
-	const router = useRouter();
-	const [isPending, startTransition] = useTransition();
+export function BeneficiariesManager() {
+	const [items, setItems] = useState<Beneficiary[]>([]);
+	const [isLoading, setIsLoading] = useState(true);
 	const [actionId, setActionId] = useState<string | null>(null);
 
-	const handleTrustToggle = (beneficiary: QontoSepaBeneficiary) => {
+	const load = useCallback(async () => {
+		setIsLoading(true);
+		try {
+			const result = await beneficiaries.getBeneficiaries();
+			setItems(result.beneficiaries);
+		} catch (error) {
+			console.error(error);
+			toast.error("Begünstigte konnten nicht geladen werden");
+		} finally {
+			setIsLoading(false);
+		}
+	}, []);
+
+	useEffect(() => {
+		load();
+	}, [load]);
+
+	const handleTrustToggle = async (beneficiary: Beneficiary) => {
 		setActionId(beneficiary.id);
-		startTransition(async () => {
-			const action = beneficiary.trusted
-				? untrustSepaBeneficiaries
-				: trustSepaBeneficiaries;
-			const result = await action([beneficiary.id]);
-
-			if (result.success) {
-				toast.success(
-					beneficiary.trusted
-						? "Begünstigter wurde entzogen"
-						: "Begünstigter wurde vertraut",
-				);
-				router.refresh();
+		try {
+			if (beneficiary.trusted) {
+				await beneficiaries.untrustBeneficiaries({
+					beneficiarySettings: { beneficiaryIds: [beneficiary.id] },
+				});
+				toast.success("Begünstigter wurde entzogen");
 			} else {
-				toast.error(result.error ?? "Aktualisierung fehlgeschlagen");
+				await beneficiaries.trustBeneficiaries({
+					beneficiarySettings: { beneficiaryIds: [beneficiary.id] },
+				});
+				toast.success("Begünstigter wurde vertraut");
 			}
-
+			await load();
+		} catch (error) {
+			console.error(error);
+			toast.error("Aktualisierung fehlgeschlagen");
+		} finally {
 			setActionId(null);
-		});
+		}
 	};
 
 	return (
@@ -93,14 +98,18 @@ export function BeneficiariesManager({
 					<div>
 						<CardTitle>Begünstigte</CardTitle>
 						<CardDescription>
-							Insgesamt {totalCount} Begünstigte
+							{isLoading
+								? "Wird geladen…"
+								: `Insgesamt ${items.length} Begünstigte`}
 						</CardDescription>
 					</div>
-					<BeneficiaryCreateDialog />
+					<BeneficiaryCreateDialog onCreated={load} />
 				</div>
 			</CardHeader>
 			<CardContent>
-				{beneficiaries.length === 0 ? (
+				{isLoading ? (
+					<p className="text-center text-slate-500">Wird geladen…</p>
+				) : items.length === 0 ? (
 					<p className="text-center text-slate-500">
 						Keine Begünstigten vorhanden
 					</p>
@@ -116,7 +125,7 @@ export function BeneficiariesManager({
 							</TableRow>
 						</TableHeader>
 						<TableBody>
-							{beneficiaries.map((beneficiary) => (
+							{items.map((beneficiary) => (
 								<TableRow key={beneficiary.id}>
 									<TableCell className="font-medium">
 										{beneficiary.name}
@@ -126,9 +135,7 @@ export function BeneficiariesManager({
 									</TableCell>
 									<TableCell>
 										<span
-											className={`rounded-full px-2 py-1 text-xs ${getStatusClassName(
-												beneficiary.status,
-											)}`}
+											className={`rounded-full px-2 py-1 text-xs ${getStatusClassName(beneficiary.status)}`}
 										>
 											{getStatusLabel(beneficiary.status)}
 										</span>
@@ -140,7 +147,7 @@ export function BeneficiariesManager({
 										<Button
 											variant={beneficiary.trusted ? "outline" : "default"}
 											size="sm"
-											disabled={isPending && actionId === beneficiary.id}
+											disabled={actionId === beneficiary.id}
 											onClick={() => handleTrustToggle(beneficiary)}
 										>
 											{beneficiary.trusted ? "Entziehen" : "Vertrauen"}

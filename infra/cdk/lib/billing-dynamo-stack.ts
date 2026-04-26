@@ -8,8 +8,10 @@ import {
 import * as ssm from "aws-cdk-lib/aws-ssm";
 import type { Construct } from "constructs";
 
-export const SSM_ORGANIZERS_TABLE = "/ticketing-billing/dynamodb/organizers-table-name";
-export const SSM_BILLING_RECORDS_TABLE = "/ticketing-billing/dynamodb/billing-records-table-name";
+export const SSM_ORGANIZERS_TABLE =
+	"/ticketing-billing/dynamodb/organizers-table-name";
+export const SSM_BILLING_RECORDS_TABLE =
+	"/ticketing-billing/dynamodb/billing-records-table-name";
 
 export class BillingDynamoStack extends cdk.Stack {
 	public readonly organizersTable: Table;
