@@ -18,6 +18,7 @@ infra/*/node_modules/
 
 # next.js
 /.next/
+apps/*/.open-next
 apps/*/.next/
 /out/
 

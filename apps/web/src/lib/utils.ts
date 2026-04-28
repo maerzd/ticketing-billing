@@ -5,7 +5,7 @@ export function cn(...inputs: ClassValue[]) {
 	return twMerge(clsx(inputs));
 }
 
-export interface FormatNumberOptions extends Intl.NumberFormatOptions {}
+export interface FormatNumberOptions extends Intl.NumberFormatOptions { }
 
 export function formatNumber(
 	num: number | undefined | null,
@@ -63,22 +63,27 @@ function _isLocalhostUrl(url: string): boolean {
  * @returns The canonical base URL without trailing slash
  */
 export function getBaseUrl(): string {
-	// 1. Fall back to the production URL when available.
+	// 1. Explicit canonical URL — required for Cloudflare Workers and non-Vercel deployments.
+	if (process.env.NEXT_PUBLIC_SITE_URL) {
+		return normalizeUrl(process.env.NEXT_PUBLIC_SITE_URL).replace(/\/$/, "");
+	}
+
+	// 2. Vercel production URL.
 	if (process.env.VERCEL_PROJECT_PRODUCTION_URL) {
 		return `https://${normalizeUrl(process.env.VERCEL_PROJECT_PRODUCTION_URL)}`;
 	}
 
-	// 2. On Vercel, use the deployment URL (works for preview and production).
+	// 3. On Vercel, use the deployment URL (works for preview and production).
 	if (process.env.VERCEL_URL) {
 		return `https://${normalizeUrl(process.env.VERCEL_URL)}`;
 	}
 
-	// 3. Fallback for local development
+	// 4. Fallback for local Next.js dev server
 	if (process.env.NODE_ENV === "development") {
 		return "http://localhost:3000";
 	}
 
-	// 4. Safe fallback - this should never be reached in production
+	// 5. Safe fallback - this should never be reached in production
 	throw new Error(
 		"Unable to determine base URL. Please set NEXT_PUBLIC_SITE_URL, VERCEL_URL, or VERCEL_PROJECT_PRODUCTION_URL environment variable.",
 	);
