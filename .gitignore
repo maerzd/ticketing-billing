@@ -17,6 +17,8 @@ infra/*/node_modules/
 /coverage
 
 # next.js
+*.turbo
+apps/*/.wrangler
 /.next/
 apps/*/.open-next
 apps/*/.next/
