@@ -1,4 +1,4 @@
-import type { QueryErrorCode } from "@/lib/qonto/queries";
+type QueryErrorCode = "UNAUTHORIZED" | "UNKNOWN";
 
 export function requiresQontoAuth(
 	errorCode: QueryErrorCode | undefined,

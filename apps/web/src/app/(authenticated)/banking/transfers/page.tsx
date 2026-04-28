@@ -1,13 +1,8 @@
-import { BeneficiaryCreateDialog } from "@/components/forms/BeneficiaryCreateDialog";
+import { sepaTransfers } from "@qonto/embed-sdk/server/sepa-transfers";
+import { Plus } from "lucide-react";
+import Link from "next/link";
 import { QontoConnectCard } from "@/components/my-ui/qonto-connect-card";
-import { TransferStatusBadge } from "@/components/my-ui/transfer-status-badge";
-import {
-	Card,
-	CardContent,
-	CardDescription,
-	CardHeader,
-	CardTitle,
-} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import {
 	Table,
 	TableBody,
@@ -16,123 +11,90 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
-import { requiresQontoAuth } from "@/lib/qonto/auth-state";
-import {
-	queryBeneficiaries,
-	queryOrganization,
-	queryTransfers,
-} from "@/lib/qonto/queries";
-import { TransferCreateDialog } from "./transfer-create-dialog";
+import { getAccessToken, isAuthenticated } from "@/lib/auth";
+import { formatCurrency } from "@/lib/utils";
 
 export default async function TransfersPage() {
-	const result = await queryTransfers();
-	const showQontoLogin = !result.success && requiresQontoAuth(result.errorCode);
-	const beneficiariesResult = await queryBeneficiaries();
-	const beneficiaries = beneficiariesResult.success
-		? beneficiariesResult.data.beneficiaries
-		: [];
-	const organizationResult = await queryOrganization();
-	const bankAccounts = organizationResult.success
-		? organizationResult.data.organization.bank_accounts
-		: [];
+	const authenticated = await isAuthenticated();
 
-	const formatDate = (dateString: string | null) => {
-		if (!dateString) return "—";
-		return new Date(dateString).toLocaleDateString("en-GB", {
-			year: "numeric",
-			month: "short",
-			day: "numeric",
-		});
-	};
+	if (!authenticated) {
+		return (
+			<div className="space-y-8">
+				<div>
+					<h1 className="font-bold text-3xl text-slate-900">Überweisungen</h1>
+				</div>
+				<QontoConnectCard />
+			</div>
+		);
+	}
 
-	const formatCurrency = (centAmount: number) => {
-		return (centAmount / 100).toLocaleString("en-GB", {
-			style: "currency",
-			currency: "EUR",
-		});
-	};
+	const accessToken = await getAccessToken();
+	const { transfers } = await sepaTransfers.getSepaTransfers({
+		operationSettings: { accessToken },
+	});
 
 	return (
-		<div className="space-y-8">
-			{/* Header */}
-			<div>
-				<h1 className="font-bold text-3xl text-slate-900">Überweisungen</h1>
-				<p className="mt-2 text-slate-600">
-					Verwalten Sie SEPA-Überweisungen an Begünstigte
-				</p>
+		<div className="space-y-6">
+			<div className="flex items-center justify-between">
+				<div>
+					<h1 className="font-bold text-3xl text-slate-900">Überweisungen</h1>
+					<p className="mt-2 text-slate-600">
+						SEPA-Überweisungen an Begünstigte
+					</p>
+				</div>
+				<Button
+					render={<Link href="/banking/transfers/create" />}
+					className="gap-2"
+				>
+					<Plus className="h-4 w-4" />
+					Neue Überweisung
+				</Button>
 			</div>
 
-			{/* Action Buttons */}
-			{!showQontoLogin && (
-				<div className="flex items-center gap-2">
-					<TransferCreateDialog
-						beneficiaries={beneficiaries}
-						bankAccounts={bankAccounts}
-					/>
-					<BeneficiaryCreateDialog
-						triggerVariant="outline"
-						triggerLabel="Begünstigten hinzufügen"
-					/>
-				</div>
-			)}
-			{/* Transfers List */}
-			{showQontoLogin && <QontoConnectCard />}
-
-			{!showQontoLogin && result.success && result.data && (
-				<Card>
-					<CardHeader>
-						<CardTitle>Alle Überweisungen</CardTitle>
-						<CardDescription>
-							Insgesamt {result.data.meta.total_count} Überweisungen
-						</CardDescription>
-					</CardHeader>
-					<CardContent>
-						{result.data.transfers.length === 0 ? (
-							<p className="text-center text-slate-500">
-								Keine Überweisungen vorhanden
-							</p>
-						) : (
-							<Table>
-								<TableHeader>
-									<TableRow>
-										<TableHead>Betrag</TableHead>
-										<TableHead>Referenz</TableHead>
-										<TableHead>Ausgeführungsdatum</TableHead>
-										<TableHead>Status</TableHead>
-									</TableRow>
-								</TableHeader>
-								<TableBody>
-									{result.data.transfers.map((transfer) => (
-										<TableRow key={transfer.id}>
-											<TableCell className="font-mono font-semibold">
-												{formatCurrency(transfer.amount_cents)}
-											</TableCell>
-											<TableCell className="text-slate-600 text-sm">
-												{transfer.reference || "—"}
-											</TableCell>
-											<TableCell>{formatDate(transfer.completed_at)}</TableCell>
-											<TableCell>
-												<TransferStatusBadge status={transfer.status} />
-											</TableCell>
-										</TableRow>
-									))}
-								</TableBody>
-							</Table>
+			<div className="rounded-lg border">
+				<Table>
+					<TableHeader>
+						<TableRow>
+							<TableHead>Empfänger-ID</TableHead>
+							<TableHead>Referenz</TableHead>
+							<TableHead>Datum</TableHead>
+							<TableHead>Status</TableHead>
+							<TableHead className="text-right">Betrag</TableHead>
+						</TableRow>
+					</TableHeader>
+					<TableBody>
+						{transfers.length === 0 && (
+							<TableRow>
+								<TableCell
+									colSpan={5}
+									className="text-center text-muted-foreground"
+								>
+									Keine Überweisungen vorhanden
+								</TableCell>
+							</TableRow>
 						)}
-					</CardContent>
-				</Card>
-			)}
-
-			{!showQontoLogin && result.success === false && (
-				<Card className="border-red-200 bg-red-50">
-					<CardHeader>
-						<CardTitle className="text-red-900">Error</CardTitle>
-					</CardHeader>
-					<CardContent>
-						<p className="text-red-800">{result.error}</p>
-					</CardContent>
-				</Card>
-			)}
+						{transfers.map((t) => (
+							<TableRow key={t.id}>
+								<TableCell className="font-mono text-xs text-muted-foreground">
+									{t.beneficiaryId}
+								</TableCell>
+								<TableCell>{t.reference}</TableCell>
+								<TableCell className="text-muted-foreground text-sm">
+									{new Date(t.createdAt).toLocaleDateString("de-DE")}
+								</TableCell>
+								<TableCell>
+									<span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-slate-100 text-slate-700">
+										{t.status}
+									</span>
+								</TableCell>
+								<TableCell className="text-right font-mono">
+									{formatCurrency(t.amount, t.amountCurrency)}
+								</TableCell>
+							</TableRow>
+						))}
+					</TableBody>
+				</Table>
+			</div>
 		</div>
 	);
 }

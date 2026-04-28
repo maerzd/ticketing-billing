@@ -1,10 +1,20 @@
-import type {
-	QontoOAuthError,
-	QontoTokenResponse,
-} from "@ticketing-billing/types/qonto/qonto";
 import env from "@/env";
 import { OAuthError } from "@/lib/errors";
 import { getBaseUrl } from "../utils";
+
+interface QontoTokenResponse {
+	access_token: string;
+	refresh_token: string;
+	expires_in: number;
+	token_type: string;
+}
+
+interface QontoOAuthError {
+	error: string;
+	error_description?: string;
+}
+
+export type { QontoTokenResponse };
 
 const SANDBOX_AUTH_URL = "https://oauth-sandbox.staging.qonto.co/oauth2/auth";
 const SANDBOX_TOKEN_URL = "https://oauth-sandbox.staging.qonto.co/oauth2/token";

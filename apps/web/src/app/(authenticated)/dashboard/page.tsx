@@ -1,3 +1,4 @@
+import { organizations } from "@qonto/embed-sdk/server/organizations";
 import { FileText, Send, Users } from "lucide-react";
 import Link from "next/link";
 import { qontoLogoutAction } from "@/actions/qonto-logout";
@@ -11,8 +12,8 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
+import { getAccessToken } from "@/lib/auth";
 import { requiresQontoAuth } from "@/lib/qonto/auth-state";
-import { queryOrganization } from "@/lib/qonto/queries";
 import SalesDashboard from "./sales-dashboard";
 
 interface PageProps {
@@ -21,8 +22,37 @@ interface PageProps {
 
 export default async function Page({ searchParams }: PageProps) {
 	const params = await searchParams;
-	const result = await queryOrganization();
-	const showQontoLogin = !result.success && requiresQontoAuth(result.errorCode);
+
+	type OrgResult =
+		| { success: true; data: { id: string; slug: string; legalName: string } }
+		| { success: false; errorCode?: string; error: string };
+
+	let result: OrgResult;
+	try {
+		const accessToken = await getAccessToken();
+		const org = await organizations.getOrganization({
+			operationSettings: { accessToken },
+		});
+		result = {
+			success: true,
+			data: { id: org.id, slug: org.slug, legalName: org.legalName },
+		};
+	} catch (err) {
+		const message =
+			err instanceof Error ? err.message : "Fehler beim Laden der Organisation";
+		const isUnauthorized =
+			message.toLowerCase().includes("401") ||
+			message.toLowerCase().includes("unauthorized");
+		result = {
+			success: false,
+			errorCode: isUnauthorized ? "UNAUTHORIZED" : undefined,
+			error: message,
+		};
+	}
+
+	const showQontoLogin =
+		!result.success &&
+		requiresQontoAuth(result.errorCode as "UNAUTHORIZED" | undefined);
 
 	return (
 		<div className="space-y-8">
@@ -56,19 +86,17 @@ export default async function Page({ searchParams }: PageProps) {
 							<div>
 								<p className="font-medium text-slate-600 text-sm">Name</p>
 								<p className="text-lg text-slate-900">
-									{result.data.organization.name}
+									{result.data.legalName}
 								</p>
 							</div>
 							<div>
 								<p className="font-medium text-slate-600 text-sm">Slug</p>
-								<p className="text-lg text-slate-900">
-									{result.data.organization.slug}
-								</p>
+								<p className="text-lg text-slate-900">{result.data.slug}</p>
 							</div>
 							<div>
 								<p className="font-medium text-slate-600 text-sm">ID</p>
 								<p className="font-mono text-lg text-slate-600">
-									{result.data.organization.id}
+									{result.data.id}
 								</p>
 							</div>
 						</div>

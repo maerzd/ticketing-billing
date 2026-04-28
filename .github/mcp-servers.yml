@@ -1,0 +1,28 @@
+# MCP servers for Copilot/Dev tools
+# This file configures MCP servers that can be launched for development/inspection.
+servers:
+  - name: next-devtools-mcp
+    package: "next-devtools-mcp@latest"
+    description: "Next.js Devtools MCP server for the apps/web Next.js application"
+    workspace: "apps/web"
+    start: "yarn workspace @ticketing-billing/web dev"
+    ports: [3000]
+    env:
+      NODE_ENV: development
+
+  # Cloudflare MCP servers
+  - name: cloudflare
+    url: "https://mcp.cloudflare.com/mcp"
+    description: "Cloudflare API MCP server (Code Mode)"
+  - name: cloudflare-docs
+    url: "https://docs.mcp.cloudflare.com/mcp"
+    description: "Cloudflare Docs MCP server (public, no auth required)"
+  - name: cloudflare-bindings
+    url: "https://bindings.mcp.cloudflare.com/mcp"
+    description: "Cloudflare Bindings MCP server"
+  - name: cloudflare-builds
+    url: "https://builds.mcp.cloudflare.com/mcp"
+    description: "Cloudflare Builds MCP server"
+  - name: cloudflare-observability
+    url: "https://observability.mcp.cloudflare.com/mcp"
+    description: "Cloudflare Observability MCP server"

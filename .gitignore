@@ -16,9 +16,11 @@ infra/*/node_modules/
 # testing
 /coverage
 
-# next.js
-/.next/
-apps/*/.next/
+# next.js and build outputs
+**/.turbo/
+**/.wrangler/
+**/.next/
+**/.open-next/
 /out/
 
 # aws cdk

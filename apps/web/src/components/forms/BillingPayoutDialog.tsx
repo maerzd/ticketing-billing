@@ -1,16 +1,13 @@
 "use client";
 
+import type { BankAccount } from "@qonto/embed-sdk/types";
 import type {
 	BillingRecord,
 	OrganizerRecord,
 } from "@ticketing-billing/types/ddb";
-import { useEffect, useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import {
-	fetchQontoBankAccounts,
-	initiateBillingPayout,
-} from "@/actions/billing";
-import { verifyTransferPayee } from "@/actions/transfers";
+import { initiateBillingPayout } from "@/actions/billing";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -28,9 +25,8 @@ interface BillingPayoutDialogProps {
 	billingRecord: BillingRecord;
 	organizer: OrganizerRecord;
 	onSuccess: (updated: BillingRecord) => void;
+	bankAccounts?: BankAccount[];
 }
-
-type Step = "idle" | "verifying" | "verified" | "initiating";
 
 export function BillingPayoutDialog({
 	open,
@@ -38,54 +34,25 @@ export function BillingPayoutDialog({
 	billingRecord,
 	organizer,
 	onSuccess,
+	bankAccounts,
 }: BillingPayoutDialogProps) {
-	const [step, setStep] = useState<Step>("idle");
-	const [vopProofToken, setVopProofToken] = useState<string | null>(null);
-	const [bankAccountId, setBankAccountId] = useState<string | null>(null);
+	const [isInitiating, setIsInitiating] = useState(false);
 
-	// Fetch the main bank account when dialog opens
-	useEffect(() => {
-		if (!open) {
-			return;
-		}
-
-		fetchQontoBankAccounts().then((result) => {
-			if (result.success) {
-				const main = result.data.find((a) => a.main) ?? result.data[0];
-				if (main) {
-					setBankAccountId(main.id);
-				}
-			}
-		});
-	}, [open]);
-
-	const handleVerify = async () => {
-		if (!organizer.iban || !organizer.sepaBeneficiaryName) {
-			toast.error(
-				"Veranstalter hat keine IBAN oder keinen Begünstigten Namen hinterlegt.",
-			);
-			return;
-		}
-
-		setStep("verifying");
-		const result = await verifyTransferPayee(
-			organizer.iban,
-			organizer.sepaBeneficiaryName,
-		);
-
-		if (!result.success || !result.data) {
-			toast.error(`Verifikation fehlgeschlagen: ${result.error}`);
-			setStep("idle");
-			return;
-		}
-
-		setVopProofToken(result.data.proof_token.token);
-		setStep("verified");
-	};
+	const bankAccountId = useMemo(() => {
+		const main = bankAccounts?.find((a) => a.main) ?? bankAccounts?.[0];
+		return main?.slug ?? main?.id ?? null;
+	}, [bankAccounts]);
 
 	const handleInitiatePayout = async () => {
-		if (!vopProofToken || !bankAccountId) {
-			toast.error("Verifikationstoken oder Bankkonto fehlt.");
+		if (!bankAccountId) {
+			toast.error("Kein Bankkonto verfügbar.");
+			return;
+		}
+
+		if (!organizer.iban || !organizer.sepaBeneficiaryName) {
+			toast.error(
+				"Veranstalter hat keine IBAN oder keinen Begünstigten-Namen hinterlegt.",
+			);
 			return;
 		}
 
@@ -94,18 +61,20 @@ export function BillingPayoutDialog({
 			return;
 		}
 
-		setStep("initiating");
+		setIsInitiating(true);
 		const result = await initiateBillingPayout({
 			organizerId: billingRecord.organizerId,
 			eventId: billingRecord.eventId,
 			beneficiaryId: organizer.qontoBeneficiaryId,
-			vopProofToken,
+			iban: organizer.iban,
+			beneficiaryName: organizer.sepaBeneficiaryName,
 			bankAccountId,
 		});
 
+		setIsInitiating(false);
+
 		if (!result.success) {
 			toast.error(`Auszahlung fehlgeschlagen: ${result.error}`);
-			setStep("verified");
 			return;
 		}
 
@@ -115,7 +84,6 @@ export function BillingPayoutDialog({
 	};
 
 	const payoutAmount = billingRecord.payoutAmountCents / 100;
-	const isLoading = step === "verifying" || step === "initiating";
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
@@ -144,39 +112,20 @@ export function BillingPayoutDialog({
 							{organizer.sepaBeneficiaryName ?? organizer.name ?? "—"}
 						</span>
 					</div>
-
-					{step === "idle" && (
-						<p className="text-muted-foreground text-sm">
-							Klicken Sie auf „Verifizieren", um den Begünstigten zu prüfen.
-						</p>
-					)}
-
-					{step === "verified" && (
-						<p className="text-sm text-green-700">
-							Begünstigter verifiziert. Jetzt kann die Überweisung gestartet
-							werden.
-						</p>
-					)}
 				</div>
 
 				<DialogFooter className="flex gap-2">
 					<Button variant="outline" onClick={() => onOpenChange(false)}>
 						Abbrechen
 					</Button>
-					{step === "idle" || step === "verifying" ? (
-						<Button
-							onClick={handleVerify}
-							disabled={isLoading || !organizer.iban}
-						>
-							{step === "verifying" ? "Wird verifiziert..." : "Verifizieren"}
-						</Button>
-					) : (
-						<Button onClick={handleInitiatePayout} disabled={isLoading}>
-							{isLoading
-								? "Wird überwiesen..."
-								: `${formatCurrency(payoutAmount)} überweisen`}
-						</Button>
-					)}
+					<Button
+						onClick={handleInitiatePayout}
+						disabled={isInitiating || !bankAccountId}
+					>
+						{isInitiating
+							? "Wird überwiesen..."
+							: `${formatCurrency(payoutAmount)} überweisen`}
+					</Button>
 				</DialogFooter>
 			</DialogContent>
 		</Dialog>

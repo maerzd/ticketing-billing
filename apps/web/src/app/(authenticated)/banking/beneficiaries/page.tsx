@@ -1,14 +1,24 @@
+import { beneficiaries } from "@qonto/embed-sdk/server/beneficiaries";
+import type { Beneficiary } from "@qonto/embed-sdk/types";
 import { QontoConnectCard } from "@/components/my-ui/qonto-connect-card";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { requiresQontoAuth } from "@/lib/qonto/auth-state";
-import { queryBeneficiaries } from "@/lib/qonto/queries";
+import { getAccessToken, isAuthenticated } from "@/lib/auth";
 import { BeneficiariesManager } from "./BeneficiariesManager";
 
 export default async function BeneficiariesPage() {
-	const result = await queryBeneficiaries();
-	const showQontoLogin = !result.success && requiresQontoAuth(result.errorCode);
-	const beneficiaries = result.success ? result.data.beneficiaries : [];
-	const totalCount = result.success ? result.data.meta.total_count : 0;
+	const authenticated = await isAuthenticated();
+
+	let initialBeneficiaries: Beneficiary[] = [];
+	if (authenticated) {
+		try {
+			const accessToken = await getAccessToken();
+			const result = await beneficiaries.getBeneficiaries({
+				operationSettings: { accessToken },
+			});
+			initialBeneficiaries = result.beneficiaries;
+		} catch {
+			// Not authenticated or fetch failed — component will show empty state
+		}
+	}
 
 	return (
 		<div className="space-y-8">
@@ -20,24 +30,10 @@ export default async function BeneficiariesPage() {
 				</p>
 			</div>
 
-			{showQontoLogin && <QontoConnectCard />}
+			{!authenticated && <QontoConnectCard />}
 
-			{result.success === false && !showQontoLogin && (
-				<Card className="border-red-200 bg-red-50">
-					<CardHeader>
-						<CardTitle className="text-red-900">Error</CardTitle>
-					</CardHeader>
-					<CardContent>
-						<p className="text-red-800">{result.error}</p>
-					</CardContent>
-				</Card>
-			)}
-
-			{!showQontoLogin && (
-				<BeneficiariesManager
-					beneficiaries={beneficiaries}
-					totalCount={totalCount}
-				/>
+			{authenticated && (
+				<BeneficiariesManager initialBeneficiaries={initialBeneficiaries} />
 			)}
 		</div>
 	);

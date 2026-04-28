@@ -18,10 +18,16 @@
 		"cdk:synth": "yarn workspace @ticketing-billing/cdk synth",
 		"cdk:diff": "yarn workspace @ticketing-billing/cdk diff",
 		"cdk:deploy": "yarn workspace @ticketing-billing/cdk deploy",
-		"cdk:bootstrap": "yarn workspace @ticketing-billing/cdk bootstrap"
+		"cdk:bootstrap": "yarn workspace @ticketing-billing/cdk bootstrap",
+		"preview": "turbo run cf:build --filter=@ticketing-billing/web && yarn workspace @ticketing-billing/web cf:preview",
+		"deploy": "turbo run cf:build --filter=@ticketing-billing/web && yarn workspace @ticketing-billing/web cf:deploy",
+		"cf-typegen": "yarn workspace @ticketing-billing/web wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts"
 	},
 	"devDependencies": {
-		"@biomejs/biome": "2.4.10",
-		"turbo": "^2.9.4"
+		"@biomejs/biome": "2.4.13",
+		"next-devtools-mcp": "^0.3.10",
+		"turbo": "^2.9.6",
+		"typescript": "6.0.3",
+		"wrangler": "^4.85.0"
 	}
 }

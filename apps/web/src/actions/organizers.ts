@@ -1,4 +1,5 @@
 "use server";
+import { beneficiaries } from "@qonto/embed-sdk/server/beneficiaries";
 import {
 	type CreateOrganizerInput,
 	CreateOrganizerInputSchema,
@@ -11,8 +12,6 @@ import { z } from "zod";
 import { getAccessToken } from "@/lib/auth";
 import { OrganizersService } from "@/lib/dynamodb/services/organizers";
 import { AppError } from "@/lib/errors";
-import { QontoClient } from "@/lib/qonto/client";
-import { BeneficiariesService } from "@/lib/qonto/services/beneficiaries";
 import { SevdeskClient } from "@/lib/sevdesk/client";
 import { SevdeskContactsService } from "@/lib/sevdesk/services/contacts";
 import { getVivenuHubbleToken } from "@/lib/vivenu/auth";
@@ -154,8 +153,6 @@ export async function createOrganizer(input: CreateOrganizerInput) {
 		}
 
 		const accessToken = await getAccessToken();
-		const qontoClient = new QontoClient({ accessToken });
-		const beneficiariesService = new BeneficiariesService(qontoClient);
 		const sevdeskClient = new SevdeskClient();
 		const sevdeskContactsService = new SevdeskContactsService(sevdeskClient);
 		const workosClient = new WorkosClient();
@@ -186,8 +183,11 @@ export async function createOrganizer(input: CreateOrganizerInput) {
 								400,
 							);
 						}
-						return beneficiariesService
-							.createBeneficiary(toQontoBeneficiaryInput(qontoInput.data))
+						return beneficiaries
+							.addBeneficiary({
+								beneficiarySettings: toQontoBeneficiaryInput(qontoInput.data),
+								operationSettings: { accessToken },
+							})
 							.catch((error) =>
 								enrichExternalCreationError(error, {
 									failedStep: "Qonto beneficiary",
@@ -291,8 +291,6 @@ export async function updateOrganizer(input: UpdateOrganizerInput) {
 		}
 
 		const accessToken = await getAccessToken();
-		const qontoClient = new QontoClient({ accessToken });
-		const beneficiariesService = new BeneficiariesService(qontoClient);
 		const sevdeskClient = new SevdeskClient();
 		const sevdeskContactsService = new SevdeskContactsService(sevdeskClient);
 		const workosClient = new WorkosClient();
@@ -308,10 +306,14 @@ export async function updateOrganizer(input: UpdateOrganizerInput) {
 			existing.qontoBeneficiaryId ?? input.qontoBeneficiaryId;
 		if (qontoBeneficiaryId) {
 			// Update mutable fields (name, email) on the existing beneficiary
-			await beneficiariesService
-				.updateBeneficiary(qontoBeneficiaryId, {
-					name: input.sepaBeneficiaryName ?? existing.sepaBeneficiaryName,
-					email: input.email ?? existing.email,
+			await beneficiaries
+				.updateBeneficiary({
+					beneficiarySettings: {
+						id: qontoBeneficiaryId,
+						name: input.sepaBeneficiaryName ?? existing.sepaBeneficiaryName,
+						email: input.email ?? existing.email,
+					},
+					operationSettings: { accessToken },
 				})
 				.catch((error) =>
 					enrichExternalCreationError(error, {
@@ -340,8 +342,11 @@ export async function updateOrganizer(input: UpdateOrganizerInput) {
 						400,
 					);
 				}
-				const beneficiary = await beneficiariesService
-					.createBeneficiary(toQontoBeneficiaryInput(qontoInput.data))
+				const beneficiary = await beneficiaries
+					.addBeneficiary({
+						beneficiarySettings: toQontoBeneficiaryInput(qontoInput.data),
+						operationSettings: { accessToken },
+					})
 					.catch((error) =>
 						enrichExternalCreationError(error, {
 							failedStep: "Qonto beneficiary",

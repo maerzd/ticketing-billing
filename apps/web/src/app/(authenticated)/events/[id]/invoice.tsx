@@ -1,4 +1,5 @@
 "use client";
+import type { BankAccount } from "@qonto/embed-sdk/types";
 import type { VivenuEvent } from "@ticketing-billing/types";
 import type {
 	BillingRecord,
@@ -114,6 +115,7 @@ export default function Invoice({
 	setupFee = 2500,
 	ticketCommissionRate = TICKET_COMMISSION_RATE,
 	billingRecord: initialBillingRecord,
+	bankAccounts,
 }: {
 	event: VivenuEvent;
 	totalRevenue: number;
@@ -125,6 +127,7 @@ export default function Invoice({
 	officialPos?: Set<string>;
 	revenuePerPos?: Record<string, number>;
 	billingRecord?: BillingRecord;
+	bankAccounts?: BankAccount[];
 }): React.ReactNode {
 	const invoiceTextRef = useRef<HTMLDivElement>(null);
 	const [isLoading, setIsLoading] = useState(false);
@@ -628,6 +631,7 @@ export default function Invoice({
 					billingRecord={billingRecord}
 					organizer={organizer}
 					onSuccess={setBillingRecord}
+					bankAccounts={bankAccounts}
 				/>
 			)}
 		</>

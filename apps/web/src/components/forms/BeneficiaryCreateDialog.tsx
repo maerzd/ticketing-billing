@@ -1,9 +1,8 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { beneficiaries } from "@qonto/embed-sdk/beneficiaries";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
-import { createSepaBeneficiary } from "@/actions/beneficiaries";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -21,7 +20,6 @@ interface FormState {
 	iban: string;
 	bic: string;
 	email: string;
-	activityTag: string;
 }
 
 interface BeneficiaryCreateDialogProps {
@@ -42,7 +40,6 @@ export function BeneficiaryCreateDialog({
 	triggerClassName,
 	onCreated,
 }: Readonly<BeneficiaryCreateDialogProps>) {
-	const router = useRouter();
 	const [isPending, startTransition] = useTransition();
 	const [open, setOpen] = useState(false);
 	const [formState, setFormState] = useState<FormState>({
@@ -50,7 +47,6 @@ export function BeneficiaryCreateDialog({
 		iban: "",
 		bic: "",
 		email: "",
-		activityTag: "",
 	});
 
 	const handleCreate = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -62,28 +58,23 @@ export function BeneficiaryCreateDialog({
 		}
 
 		startTransition(async () => {
-			const result = await createSepaBeneficiary({
-				name: formState.name.trim(),
-				iban: formState.iban.trim(),
-				bic: normalizeOptional(formState.bic),
-				email: normalizeOptional(formState.email),
-				activity_tag: normalizeOptional(formState.activityTag),
-			});
-
-			if (result.success) {
-				toast.success("Begünstigter wurde angelegt");
-				setFormState({
-					name: "",
-					iban: "",
-					bic: "",
-					email: "",
-					activityTag: "",
+			try {
+				await beneficiaries.addBeneficiary({
+					beneficiarySettings: {
+						name: formState.name.trim(),
+						iban: formState.iban.trim(),
+						bic: normalizeOptional(formState.bic),
+						email: normalizeOptional(formState.email),
+					},
 				});
+
+				toast.success("Begünstigter wurde angelegt");
+				setFormState({ name: "", iban: "", bic: "", email: "" });
 				setOpen(false);
 				onCreated?.();
-				router.refresh();
-			} else {
-				toast.error(result.error ?? "Anlegen fehlgeschlagen");
+			} catch (error) {
+				console.error(error);
+				toast.error("Anlegen fehlgeschlagen");
 			}
 		});
 	};
@@ -97,7 +88,7 @@ export function BeneficiaryCreateDialog({
 			>
 				{triggerLabel}
 			</DialogTrigger>
-			<DialogContent className="sm:max-w-2xl">
+			<DialogContent className="sm:max-w-lg">
 				<DialogHeader>
 					<DialogTitle>Neuen Begünstigten hinzufügen</DialogTitle>
 					<DialogDescription>
@@ -111,10 +102,7 @@ export function BeneficiaryCreateDialog({
 							id="beneficiary-name"
 							value={formState.name}
 							onChange={(event) =>
-								setFormState((prev) => ({
-									...prev,
-									name: event.target.value,
-								}))
+								setFormState((prev) => ({ ...prev, name: event.target.value }))
 							}
 							placeholder="Muster GmbH"
 							required
@@ -126,10 +114,7 @@ export function BeneficiaryCreateDialog({
 							id="beneficiary-iban"
 							value={formState.iban}
 							onChange={(event) =>
-								setFormState((prev) => ({
-									...prev,
-									iban: event.target.value,
-								}))
+								setFormState((prev) => ({ ...prev, iban: event.target.value }))
 							}
 							placeholder="DE00 0000 0000 0000 0000 00"
 							required
@@ -142,10 +127,7 @@ export function BeneficiaryCreateDialog({
 								id="beneficiary-bic"
 								value={formState.bic}
 								onChange={(event) =>
-									setFormState((prev) => ({
-										...prev,
-										bic: event.target.value,
-									}))
+									setFormState((prev) => ({ ...prev, bic: event.target.value }))
 								}
 								placeholder="DEUTDEFF"
 							/>
@@ -162,27 +144,23 @@ export function BeneficiaryCreateDialog({
 										email: event.target.value,
 									}))
 								}
-								placeholder="billing@example.com"
+								placeholder="kontakt@beispiel.de"
 							/>
 						</div>
 					</div>
-					<div className="space-y-2">
-						<Label htmlFor="beneficiary-activity">Tag</Label>
-						<Input
-							id="beneficiary-activity"
-							value={formState.activityTag}
-							onChange={(event) =>
-								setFormState((prev) => ({
-									...prev,
-									activityTag: event.target.value,
-								}))
-							}
-							placeholder="Lieferant, Freelancer, Kunde"
-						/>
+					<div className="flex justify-end gap-2 pt-2">
+						<Button
+							type="button"
+							variant="outline"
+							onClick={() => setOpen(false)}
+							disabled={isPending}
+						>
+							Abbrechen
+						</Button>
+						<Button type="submit" disabled={isPending}>
+							{isPending ? "Wird angelegt…" : "Anlegen"}
+						</Button>
 					</div>
-					<Button type="submit" className="w-full" disabled={isPending}>
-						Begünstigten anlegen
-					</Button>
 				</form>
 			</DialogContent>
 		</Dialog>
