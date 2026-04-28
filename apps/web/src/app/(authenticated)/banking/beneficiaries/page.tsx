@@ -1,9 +1,24 @@
+import { beneficiaries } from "@qonto/embed-sdk/server/beneficiaries";
+import type { Beneficiary } from "@qonto/embed-sdk/types";
 import { QontoConnectCard } from "@/components/my-ui/qonto-connect-card";
-import { isAuthenticated } from "@/lib/auth";
+import { getAccessToken, isAuthenticated } from "@/lib/auth";
 import { BeneficiariesManager } from "./BeneficiariesManager";
 
 export default async function BeneficiariesPage() {
 	const authenticated = await isAuthenticated();
+
+	let initialBeneficiaries: Beneficiary[] = [];
+	if (authenticated) {
+		try {
+			const accessToken = await getAccessToken();
+			const result = await beneficiaries.getBeneficiaries({
+				operationSettings: { accessToken },
+			});
+			initialBeneficiaries = result.beneficiaries;
+		} catch {
+			// Not authenticated or fetch failed — component will show empty state
+		}
+	}
 
 	return (
 		<div className="space-y-8">
@@ -17,7 +32,9 @@ export default async function BeneficiariesPage() {
 
 			{!authenticated && <QontoConnectCard />}
 
-			{authenticated && <BeneficiariesManager />}
+			{authenticated && (
+				<BeneficiariesManager initialBeneficiaries={initialBeneficiaries} />
+			)}
 		</div>
 	);
 }

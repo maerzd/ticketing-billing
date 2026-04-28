@@ -1,16 +1,13 @@
 "use client";
 
+import type { BankAccount } from "@qonto/embed-sdk/types";
 import type {
 	BillingRecord,
 	OrganizerRecord,
 } from "@ticketing-billing/types/ddb";
-import type { BankAccount } from "@qonto/embed-sdk/types";
-import { useEffect, useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import {
-	fetchQontoBankAccounts,
-	initiateBillingPayout,
-} from "@/actions/billing";
+import { initiateBillingPayout } from "@/actions/billing";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -28,6 +25,7 @@ interface BillingPayoutDialogProps {
 	billingRecord: BillingRecord;
 	organizer: OrganizerRecord;
 	onSuccess: (updated: BillingRecord) => void;
+	bankAccounts?: BankAccount[];
 }
 
 export function BillingPayoutDialog({
@@ -36,25 +34,14 @@ export function BillingPayoutDialog({
 	billingRecord,
 	organizer,
 	onSuccess,
+	bankAccounts,
 }: BillingPayoutDialogProps) {
 	const [isInitiating, setIsInitiating] = useState(false);
-	const [bankAccountId, setBankAccountId] = useState<string | null>(null);
 
-	useEffect(() => {
-		if (!open) return;
-
-		fetchQontoBankAccounts().then((result) => {
-			if (result.success) {
-				const main =
-					(result.data as BankAccount[]).find((a) => a.main) ?? result.data[0];
-				if (main) {
-					setBankAccountId(
-						(main as BankAccount).slug ?? (main as BankAccount).id ?? null,
-					);
-				}
-			}
-		});
-	}, [open]);
+	const bankAccountId = useMemo(() => {
+		const main = bankAccounts?.find((a) => a.main) ?? bankAccounts?.[0];
+		return main?.slug ?? main?.id ?? null;
+	}, [bankAccounts]);
 
 	const handleInitiatePayout = async () => {
 		if (!bankAccountId) {

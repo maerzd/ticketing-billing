@@ -22,6 +22,7 @@
 	},
 	"devDependencies": {
 		"@biomejs/biome": "2.4.10",
+		"next-devtools-mcp": "latest",
 		"turbo": "^2.9.4"
 	}
 }

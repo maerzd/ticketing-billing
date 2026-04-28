@@ -1,6 +1,5 @@
 import type { z } from "zod";
 import { ZodError } from "zod";
-import { da } from "zod/locales";
 import env from "@/env";
 import { AppError, ValidationError } from "@/lib/errors";
 

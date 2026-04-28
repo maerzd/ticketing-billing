@@ -6,11 +6,9 @@ import {
 	Building2,
 	CalendarCheck,
 	CalendarClock,
-	FileText,
 	LayoutDashboard,
 	ShieldUser,
 	Store,
-	Users,
 } from "lucide-react";
 import type * as React from "react";
 import { NavMain } from "@/components/nav-main";

@@ -1,8 +1,10 @@
+import { organizations } from "@qonto/embed-sdk/server/organizations";
 import NotFound from "@/app/not-found";
 import { BillingStatusBadge } from "@/components/my-ui/billing-status-badge";
 import LabelText from "@/components/my-ui/label-text";
 import { Card, CardContent } from "@/components/ui/card";
 import { BreadcrumbSetter } from "@/context/breadcrumb-context";
+import { getAccessToken } from "@/lib/auth";
 import { BillingRecordsService } from "@/lib/dynamodb/services/billing-records";
 import { OrganizersService } from "@/lib/dynamodb/services/organizers";
 import {
@@ -52,11 +54,16 @@ export default async function Page({ params }: { params: Promise<PageParam> }) {
 
 	const organizerId = event.attributes?.organizerid;
 
-	const [organizer, billingRecord] = await Promise.all([
+	const [organizer, billingRecord, bankAccounts] = await Promise.all([
 		organizerId
 			? organizersService.getOrganizer(organizerId)
 			: Promise.resolve(null),
 		billingRecordsService.getBillingRecordByEventId(eventId),
+		getAccessToken()
+			.then((accessToken) =>
+				organizations.getBankAccounts({ operationSettings: { accessToken } }),
+			)
+			.catch(() => []),
 	]);
 	return (
 		<div className="max-w-4xl">
@@ -100,6 +107,7 @@ export default async function Page({ params }: { params: Promise<PageParam> }) {
 					revenue={revenue}
 					pos={pos}
 					billingRecord={billingRecord ?? undefined}
+					bankAccounts={bankAccounts}
 				/>
 			</div>
 			<div className="my-8">

@@ -2,8 +2,9 @@
 
 import type { Beneficiary } from "@qonto/embed-sdk/beneficiaries";
 import { beneficiaries } from "@qonto/embed-sdk/beneficiaries";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { toast } from "sonner";
+import { BeneficiaryCreateDialog } from "@/components/forms/BeneficiaryCreateDialog";
 import { Button } from "@/components/ui/button";
 import {
 	Card,
@@ -20,7 +21,6 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
-import { BeneficiaryCreateDialog } from "@/components/forms/BeneficiaryCreateDialog";
 
 const getStatusLabel = (status: string) => {
 	switch (status) {
@@ -46,9 +46,13 @@ const getStatusClassName = (status: string) => {
 	}
 };
 
-export function BeneficiariesManager() {
-	const [items, setItems] = useState<Beneficiary[]>([]);
-	const [isLoading, setIsLoading] = useState(true);
+export function BeneficiariesManager({
+	initialBeneficiaries,
+}: {
+	initialBeneficiaries: Beneficiary[];
+}) {
+	const [items, setItems] = useState<Beneficiary[]>(initialBeneficiaries);
+	const [isLoading, setIsLoading] = useState(false);
 	const [actionId, setActionId] = useState<string | null>(null);
 
 	const load = useCallback(async () => {
@@ -63,10 +67,6 @@ export function BeneficiariesManager() {
 			setIsLoading(false);
 		}
 	}, []);
-
-	useEffect(() => {
-		load();
-	}, [load]);
 
 	const handleTrustToggle = async (beneficiary: Beneficiary) => {
 		setActionId(beneficiary.id);

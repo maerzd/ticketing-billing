@@ -1,4 +1,5 @@
 "use client";
+import type { BankAccount } from "@qonto/embed-sdk/types";
 import type { VivenuEvent } from "@ticketing-billing/types";
 import type {
 	BillingRecord,
@@ -13,7 +14,6 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { TICKET_COMMISSION_RATE, ZUENFTICK_SHOP_IDS } from "@/lib/constants";
-import type { OrganizerData } from "@/lib/notion/notion-types";
 import Invoice from "./invoice";
 
 interface PosRevenueMapping {
@@ -45,6 +45,7 @@ export default function RevenueTable({
 	pos,
 	organizer,
 	billingRecord,
+	bankAccounts,
 }: {
 	event: VivenuEvent;
 	ticketAnalytics: TicketSales | null;
@@ -52,6 +53,7 @@ export default function RevenueTable({
 	pos: PosDevice[] | null;
 	organizer: OrganizerRecord | null;
 	billingRecord?: BillingRecord;
+	bankAccounts?: BankAccount[];
 }) {
 	const revenuePerPos = calculateRevenuePerPosId(revenue);
 
@@ -140,6 +142,7 @@ export default function RevenueTable({
 				ticketCommissionRate={ticketCommissionRate}
 				organizer={organizer}
 				billingRecord={billingRecord}
+				bankAccounts={bankAccounts}
 			/>
 		</div>
 	);

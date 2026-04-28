@@ -1,6 +1,5 @@
 "use server";
 
-import { organizations } from "@qonto/embed-sdk/server/organizations";
 import { sepaTransfers } from "@qonto/embed-sdk/server/sepa-transfers";
 import type { BillingRecord } from "@ticketing-billing/types/ddb";
 import { revalidatePath } from "next/cache";
@@ -464,25 +463,5 @@ export async function initiateBillingPayout(input: InitiatePayoutInput) {
 		return { success: true as const, data: updated };
 	} catch (error) {
 		return actionError(error, "Failed to initiate payout");
-	}
-}
-
-// ---------------------------------------------------------------------------
-// fetchQontoBankAccounts — helper for payout dialog
-// ---------------------------------------------------------------------------
-
-export async function fetchQontoBankAccounts() {
-	try {
-		const accessToken = await getAccessToken();
-		const bankAccounts = await organizations.getBankAccounts({
-			operationSettings: { accessToken },
-		});
-
-		return {
-			success: true as const,
-			data: bankAccounts,
-		};
-	} catch (error) {
-		return actionError(error, "Failed to fetch bank accounts");
 	}
 }
