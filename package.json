@@ -21,8 +21,9 @@
 		"cdk:bootstrap": "yarn workspace @ticketing-billing/cdk bootstrap"
 	},
 	"devDependencies": {
-		"@biomejs/biome": "2.4.10",
-		"next-devtools-mcp": "latest",
-		"turbo": "^2.9.4"
+		"@biomejs/biome": "2.4.13",
+		"next-devtools-mcp": "^0.3.10",
+		"turbo": "^2.9.6",
+		"typescript": "6.0.3"
 	}
 }
