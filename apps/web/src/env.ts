@@ -33,8 +33,9 @@ const envSchema = z
 		SEVDESK_INVOICE_UNIT_ID: z.coerce.string().default("1"),
 
 		RESEND_API_KEY: z.string().min(1),
-		RESEND_FROM_EMAIL: z.string().email().default("noreply@zuenftick.de"),
+		RESEND_FROM_EMAIL: z.email().default("noreply@zuenftick.de"),
 		WORKOS_API_KEY: z.string().min(1),
+		WORKOS_REDIRECT_URI: z.url().optional(),
 	})
 	.superRefine((value, context) => {
 		if (value.QONTO_SANDBOX && !value.QONTO_STAGING_TOKEN) {
@@ -77,6 +78,7 @@ const env = envSchema.parse({
 	RESEND_FROM_EMAIL: process.env.RESEND_FROM_EMAIL,
 
 	WORKOS_API_KEY: process.env.WORKOS_API_KEY,
+	WORKOS_REDIRECT_URI: process.env.WORKOS_REDIRECT_URI,
 });
 
 export default env;

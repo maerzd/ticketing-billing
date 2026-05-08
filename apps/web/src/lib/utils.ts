@@ -1,5 +1,6 @@
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
+import env from "@/env";
 
 export function cn(...inputs: ClassValue[]) {
 	return twMerge(clsx(inputs));
@@ -42,15 +43,6 @@ function normalizeUrl(url: string): string {
 	return url.replace(/\/$/, "");
 }
 
-function _isLocalhostUrl(url: string): boolean {
-	try {
-		const parsed = new URL(url);
-		return ["localhost", "127.0.0.1", "::1"].includes(parsed.hostname);
-	} catch {
-		return false;
-	}
-}
-
 /**
  * Get the canonical base URL for the application.
  *
@@ -65,7 +57,7 @@ function _isLocalhostUrl(url: string): boolean {
 export function getBaseUrl(): string {
 	// 1. Explicit canonical URL — required for Cloudflare Workers and non-Vercel deployments.
 	if (process.env.NEXT_PUBLIC_SITE_URL) {
-		return normalizeUrl(process.env.NEXT_PUBLIC_SITE_URL).replace(/\/$/, "");
+		return normalizeUrl(process.env.NEXT_PUBLIC_SITE_URL);
 	}
 
 	// 2. Vercel production URL.
@@ -87,4 +79,18 @@ export function getBaseUrl(): string {
 	throw new Error(
 		"Unable to determine base URL. Please set NEXT_PUBLIC_SITE_URL, VERCEL_URL, or VERCEL_PROJECT_PRODUCTION_URL environment variable.",
 	);
+}
+
+/**
+ * Return the callback URL used by WorkOS AuthKit.
+ *
+ * If WORKOS_REDIRECT_URI is configured, it is preferred over inferred URLs to
+ * avoid environment-specific URL parsing issues on non-Vercel platforms.
+ */
+export function getWorkosRedirectUri(): string {
+	if (env.WORKOS_REDIRECT_URI) {
+		return normalizeUrl(env.WORKOS_REDIRECT_URI);
+	}
+
+	return `${getBaseUrl()}/api/auth/callback`;
 }

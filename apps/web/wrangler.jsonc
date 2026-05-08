@@ -1,12 +1,18 @@
 {
 	"$schema": "../../node_modules/wrangler/config-schema.json",
 	"main": ".open-next/worker.js",
-	"name": "my-app",
+	"name": "billing",
 	// Set this to today's date
 	"compatibility_date": "2026-04-28",
 	"compatibility_flags": ["nodejs_compat"],
 	"assets": {
 		"directory": ".open-next/assets",
 		"binding": "ASSETS"
+	},
+	"observability": {
+		"logs": {
+			"enabled": true,
+			"invocation_logs": true
+		}
 	}
 }

@@ -1,10 +1,10 @@
 import { authkitMiddleware } from "@workos-inc/authkit-nextjs";
-import { getBaseUrl } from "@/lib/utils";
+import { getWorkosRedirectUri } from "@/lib/utils";
 
 // In middleware auth mode, each page is protected by default.
 // Exceptions are configured via the `unauthenticatedPaths` option.
 export default authkitMiddleware({
-	redirectUri: `${getBaseUrl()}/api/auth/callback`,
+	redirectUri: getWorkosRedirectUri(),
 	middlewareAuth: {
 		enabled: true,
 		unauthenticatedPaths: ["/auth"],
