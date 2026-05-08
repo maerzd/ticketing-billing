@@ -7,7 +7,7 @@ export default authkitMiddleware({
 	redirectUri: getWorkosRedirectUri(),
 	middlewareAuth: {
 		enabled: true,
-		unauthenticatedPaths: ["/auth"],
+		unauthenticatedPaths: ["/auth", "/manifest.json"],
 	},
 });
 
