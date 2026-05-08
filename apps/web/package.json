@@ -23,7 +23,7 @@
 		"@workos-inc/node": "^9.1.1",
 		"class-variance-authority": "^0.7.1",
 		"clsx": "^2.1.1",
-		"lucide-react": "^0.577.0",
+		"lucide-react": "^1.14.0",
 		"next": "16.2.4",
 		"otplib": "^13.4.0",
 		"react": "19.2.5",
