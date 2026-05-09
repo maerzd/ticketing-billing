@@ -114,6 +114,25 @@
 			],
 			"cache": false
 		},
+		"cf:preview": {
+			"dependsOn": [
+				"cf:build"
+			],
+			"cache": false,
+			"persistent": true
+		},
+		"cf:deploy": {
+			"dependsOn": [
+				"cf:build"
+			],
+			"env": [
+				"CF_ACCOUNT_ID",
+				"CF_API_TOKEN",
+				"CLOUDFLARE_ACCOUNT_ID",
+				"CLOUDFLARE_API_TOKEN"
+			],
+			"cache": false
+		},
 		"test": {
 			"dependsOn": [
 				"^test"
