@@ -4,7 +4,7 @@
 	"name": "billing",
 	// Set this to today's date
 	"compatibility_date": "2026-04-28",
-	"compatibility_flags": ["nodejs_compat"],
+	"compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
 	"assets": {
 		"directory": ".open-next/assets",
 		"binding": "ASSETS"

@@ -1,12 +1,11 @@
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
-import env from "@/env";
 
 export function cn(...inputs: ClassValue[]) {
 	return twMerge(clsx(inputs));
 }
 
-export interface FormatNumberOptions extends Intl.NumberFormatOptions { }
+export interface FormatNumberOptions extends Intl.NumberFormatOptions {}
 
 export function formatNumber(
 	num: number | undefined | null,
@@ -88,8 +87,8 @@ export function getBaseUrl(): string {
  * avoid environment-specific URL parsing issues on non-Vercel platforms.
  */
 export function getWorkosRedirectUri(): string {
-	if (env.WORKOS_REDIRECT_URI) {
-		return normalizeUrl(env.WORKOS_REDIRECT_URI);
+	if (process.env.WORKOS_REDIRECT_URI) {
+		return normalizeUrl(process.env.WORKOS_REDIRECT_URI);
 	}
 
 	return `${getBaseUrl()}/api/auth/callback`;

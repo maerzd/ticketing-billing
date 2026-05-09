@@ -9,7 +9,7 @@
 		"lint": "biome check --write --unsafe",
 		"cf:build": "opennextjs-cloudflare build",
 		"cf:preview": "opennextjs-cloudflare preview",
-		"cf:deploy": "opennextjs-cloudflare deploy"
+		"cf:deploy": "opennextjs-cloudflare deploy -- --keep-vars"
 	},
 	"dependencies": {
 		"@aws-sdk/client-dynamodb": "^3.1037.0",
@@ -28,9 +28,10 @@
 		"otplib": "^13.4.0",
 		"react": "19.2.5",
 		"react-dom": "19.2.5",
-		"react-hook-form": "^7.73.1",
+		"react-hook-form": "^7.75.0",
 		"recharts": "3.8.1",
 		"resend": "^6.12.2",
+		"server-only": "^0.0.1",
 		"sonner": "^2.0.7",
 		"tailwind-merge": "^3.5.0",
 		"zod": "^4.3.6"
