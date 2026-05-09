@@ -5,7 +5,7 @@ export function cn(...inputs: ClassValue[]) {
 	return twMerge(clsx(inputs));
 }
 
-export interface FormatNumberOptions extends Intl.NumberFormatOptions { }
+export interface FormatNumberOptions extends Intl.NumberFormatOptions {}
 
 export function formatNumber(
 	num: number | undefined | null,
