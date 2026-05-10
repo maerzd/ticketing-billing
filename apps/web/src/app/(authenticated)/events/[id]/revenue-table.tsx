@@ -9,7 +9,6 @@ import type { PosDevice } from "@ticketing-billing/types/vivenu/pos";
 import type { RevenueResponse } from "@ticketing-billing/types/vivenu/revenue";
 import type { TicketSales } from "@ticketing-billing/types/vivenu/ticket-sales";
 import React, { useId } from "react";
-import LabelText from "@/components/my-ui/label-text";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -94,41 +93,36 @@ export default function RevenueTable({
 	return (
 		<div>
 			{!isLocked && (
-				<>
-					<h3 className="font-semibold">Einstellungen</h3>
-					<div className="grid grid-cols-2 grid-rows-2 gap-4">
-						<LabelText
-							label="Steuersatz der Veranstaltung"
-							value={
-								<TaxSelector
-									eventTaxValue={eventTaxValue}
-									setEventTaxValue={setEventTaxValue}
-								/>
-							}
-						/>
-						<LabelText
-							label="POS Umsatz (für Auszahlung auswählen)"
-							value={
-								<PosSelector
-									revenuePerPos={revenuePerPos}
-									pos={pos}
-									selectedPos={officialPos}
-									setSelectedPos={setOfficialPos}
-								/>
-							}
-							className="row-span-2"
-						/>
-						<LabelText
-							label="Einrichtungsgebühr"
-							value={
-								<SetupFeeSelector
-									setupFee={setupFee}
-									setSetupFee={setSetupFee}
-								/>
-							}
-						/>
+				<div className="mb-4 rounded-xl bg-muted/50 p-4 ring-1 ring-muted">
+					<div className="flex flex-wrap gap-x-8 gap-y-4">
+						<div>
+							<p className="mb-2 text-muted-foreground text-xs">
+								Steuersatz Veranstaltung
+							</p>
+							<TaxSelector
+								eventTaxValue={eventTaxValue}
+								setEventTaxValue={setEventTaxValue}
+							/>
+						</div>
+						<div>
+							<p className="mb-2 text-muted-foreground text-xs">
+								Einrichtungsgebühr
+							</p>
+							<SetupFeeSelector setupFee={setupFee} setSetupFee={setSetupFee} />
+						</div>
+						<div>
+							<p className="mb-2 text-muted-foreground text-xs">
+								POS Umsatz (für Auszahlung)
+							</p>
+							<PosSelector
+								revenuePerPos={revenuePerPos}
+								pos={pos}
+								selectedPos={officialPos}
+								setSelectedPos={setOfficialPos}
+							/>
+						</div>
 					</div>
-				</>
+				</div>
 			)}
 
 			<Invoice
@@ -224,7 +218,7 @@ function PosSelector({
 		setSelectedPos(newSelected);
 	};
 	return (
-		<div className="flex flex-col gap-2">
+		<div className="flex flex-wrap gap-x-4 gap-y-2">
 			{Object.entries(revenuePerPos)
 				.sort(([, a], [, b]) => b - a)
 				.map(([posId]) => (

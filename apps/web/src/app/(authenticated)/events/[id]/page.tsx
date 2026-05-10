@@ -14,7 +14,7 @@ import {
 	fetchRevenue,
 	fetchTicketSales,
 } from "@/lib/vivenu/client";
-import { EventStatistics } from "./event-statistics";
+import { EventSummaryCard } from "./event-summary-card";
 import RevenueTable from "./revenue-table";
 import TicketSalesTable from "./tickets-sold-table";
 
@@ -96,7 +96,13 @@ export default async function Page({ params }: { params: Promise<PageParam> }) {
 						/>
 					</CardContent>
 				</Card>
-				<EventStatistics revenue={revenue} ticketSales={ticketSales} />
+			</div>
+			<div className="mt-4">
+				<EventSummaryCard
+					event={event}
+					ticketSales={ticketSales}
+					revenue={revenue}
+				/>
 			</div>
 			<div className="my-8">
 				<h2 className="mt-8 font-semibold text-2xl">Abrechnung</h2>

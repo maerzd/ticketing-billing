@@ -12,23 +12,17 @@ export interface BillingCalculatorInput {
 }
 
 export interface BillingAmounts {
-	// Euros (for display)
-	systemFee: number;
+	// Euros
+	systemFeeNet: number;
 	systemFeeWithTax: number;
-	variableFee: number;
+	variableFeeNet: number;
 	variableFeeWithTax: number;
+	setupFeeNet: number;
 	setupFeeWithTax: number;
 	netInvoiceAmount: number;
 	invoiceAmount: number;
 	revenueOrganizer: number;
 	payoutAmount: number;
-
-	// Cents (for storage)
-	totalRevenueCents: number;
-	invoiceAmountCents: number;
-	invoiceNetCents: number;
-	payoutAmountCents: number;
-	revenueOrganizerCents: number;
 }
 
 /**
@@ -49,8 +43,8 @@ export function calculateBillingAmounts(
 	} = input;
 
 	// Systemgebühr: 1€ pro verkauftem Ticket
-	const systemFee = ticketsCount * 1;
-	const systemFeeWithTax = systemFee * (1 + SALES_TAX_RATE);
+	const systemFeeNet = ticketsCount * 1;
+	const systemFeeWithTax = systemFeeNet * (1 + SALES_TAX_RATE);
 
 	// Variable Vorverkaufsgebühr
 	const variableFeeHelper =
@@ -58,14 +52,15 @@ export function calculateBillingAmounts(
 		(1 + ticketCommissionRate * (1 + Number(eventTaxRate)));
 	const variableFeeWithTax =
 		totalRevenue - systemFeeWithTax - variableFeeHelper;
-	const variableFee = variableFeeWithTax / (1 + Number(eventTaxRate));
+	const variableFeeNet = variableFeeWithTax / (1 + Number(eventTaxRate));
 
 	// Einrichtungsgebühr
-	const setupFeeWithTax = setupFee * (1 + SALES_TAX_RATE);
+	const setupFeeNet = setupFee;
+	const setupFeeWithTax = setupFeeNet * (1 + SALES_TAX_RATE);
 
 	// Invoice totals
 	const invoiceAmount = systemFeeWithTax + variableFeeWithTax + setupFeeWithTax;
-	const netInvoiceAmount = systemFee + variableFee + setupFee;
+	const netInvoiceAmount = systemFeeNet + variableFeeNet + setupFeeNet;
 
 	// Organizer's own POS revenue (not collected by us)
 	const revenueOrganizer = Object.entries(revenuePerPos).reduce(
@@ -76,23 +71,16 @@ export function calculateBillingAmounts(
 
 	const payoutAmount = totalRevenue - invoiceAmount - revenueOrganizer;
 
-	const round = (v: number) => Math.round(v * 100);
-
 	return {
-		systemFee,
+		systemFeeNet,
 		systemFeeWithTax,
-		variableFee,
+		variableFeeNet,
 		variableFeeWithTax,
+		setupFeeNet,
 		setupFeeWithTax,
 		netInvoiceAmount,
 		invoiceAmount,
 		revenueOrganizer,
 		payoutAmount,
-		// Cents
-		totalRevenueCents: round(totalRevenue),
-		invoiceAmountCents: round(invoiceAmount),
-		invoiceNetCents: round(netInvoiceAmount),
-		payoutAmountCents: round(payoutAmount),
-		revenueOrganizerCents: round(revenueOrganizer),
 	};
 }

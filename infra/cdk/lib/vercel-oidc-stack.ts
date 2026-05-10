@@ -32,10 +32,13 @@ export class VercelOidcStack extends cdk.Stack {
 			"ImportedOrganizersTable",
 			organizersTableName,
 		);
-		const billingRecordsTable = dynamodb.Table.fromTableName(
+		const billingRecordsTableWithIndexes = dynamodb.Table.fromTableAttributes(
 			this,
-			"ImportedBillingRecordsTable",
-			billingRecordsTableName,
+			"ImportedBillingRecordsTableWithIndexes",
+			{
+				tableName: billingRecordsTableName,
+				grantIndexPermissions: true,
+			},
 		);
 
 		const oidcProvider = new iam.OpenIdConnectProvider(
@@ -64,7 +67,7 @@ export class VercelOidcStack extends cdk.Stack {
 		});
 
 		organizersTable.grantReadWriteData(role);
-		billingRecordsTable.grantReadWriteData(role);
+		billingRecordsTableWithIndexes.grantReadWriteData(role);
 
 		new cdk.CfnOutput(this, "VercelDeploymentRoleArn", {
 			value: role.roleArn,

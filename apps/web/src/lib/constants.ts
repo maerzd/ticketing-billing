@@ -11,3 +11,7 @@ export const VIVENU_LOGIN_TWO_FACTOR_METHOD =
 export const SALES_TAX_RATE = 0.19;
 export const TICKET_COMMISSION_RATE = 0.1;
 export const ZUENFTICK_SHOP_IDS = ["Online", "683efb7ce37e2eba3618518d"];
+
+export const BILLING_SYSTEM_FEE_LABEL = "Systemgebühr";
+export const BILLING_VARIABLE_FEE_LABEL = "Vorverkaufsgebühr";
+export const BILLING_SETUP_FEE_LABEL = "Einrichtungsgebühr";

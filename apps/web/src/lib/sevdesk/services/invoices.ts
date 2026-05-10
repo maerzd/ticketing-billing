@@ -6,15 +6,25 @@ import {
 	type SevdeskInvoicePdfResponse,
 	SevdeskInvoicePdfResponseSchema,
 	SevdeskInvoicePosCreateSchema,
-	SevdeskInvoicePositionsResponseSchema,
 	SevdeskNextInvoiceNumberResponseSchema,
 	SevdeskSaveInvoiceResponseSchema,
 	SevdeskSaveInvoiceSchema,
 	SevdeskSendByResponseSchema,
 } from "@ticketing-billing/types/sevdesk";
+import { z } from "zod";
 import env from "@/env";
 import { AppError } from "@/lib/errors";
 import type { SevdeskClient } from "@/lib/sevdesk/client";
+
+const SevdeskInvoicePositionsForUpdateSchema = z.object({
+	objects: z.array(
+		z
+			.object({
+				id: z.coerce.string(),
+			})
+			.passthrough(),
+	),
+});
 
 export interface CreateInvoiceDraftInput {
 	/** Sevdesk contact ID for the organizer/customer */
@@ -132,6 +142,7 @@ export class SevdeskInvoicesService {
 			invoiceType: "RE", // Standard invoice
 			currency: "EUR",
 			timeToPay: input.timeToPay,
+			showNet: true,
 			header: input.header,
 			headText: input.headText,
 			footText: input.footText,
@@ -165,14 +176,19 @@ export class SevdeskInvoicesService {
 		invoiceId: string,
 		input: CreateInvoiceDraftInput,
 	): Promise<SevdeskInvoice> {
-		// Fetch existing positions so we can pass them for deletion
+		// Fetch existing positions so we can delete them individually first
 		const existingPosResponse = await this.client.get(
 			`/Invoice/${invoiceId}/getPositions`,
-			SevdeskInvoicePositionsResponseSchema,
+			SevdeskInvoicePositionsForUpdateSchema,
 			{},
 		);
 
 		const existingPositions = existingPosResponse.objects;
+
+		// Delete old positions one by one before saving new ones
+		for (const pos of existingPositions) {
+			await this.client.delete(`/InvoicePos/${pos.id}`, z.unknown());
+		}
 
 		// Build new positions
 		const invoicePositions = input.items.map((item) =>
@@ -186,15 +202,6 @@ export class SevdeskInvoicesService {
 				price: item.price,
 			}),
 		);
-
-		// Mark old positions for deletion (comma-separated IDs in a single object)
-		const posToDelete =
-			existingPositions.length > 0
-				? {
-						id: existingPositions.map((p) => p.id).join(","),
-						objectName: "InvoicePos",
-					}
-				: undefined;
 
 		const contactRef = SevdeskInputRefSchema.parse({
 			id: input.organizerContactId,
@@ -216,6 +223,7 @@ export class SevdeskInvoicesService {
 			invoiceType: "RE",
 			currency: "EUR",
 			timeToPay: input.timeToPay,
+			showNet: true,
 			header: input.header,
 			headText: input.headText,
 			footText: input.footText,
@@ -230,7 +238,6 @@ export class SevdeskInvoicesService {
 		const payload = SevdeskSaveInvoiceSchema.parse({
 			invoice,
 			invoicePosSave: invoicePositions,
-			invoicePosDelete: posToDelete ?? null,
 		});
 
 		const response = await this.client.post(
