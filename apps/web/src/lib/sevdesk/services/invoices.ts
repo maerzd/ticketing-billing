@@ -52,7 +52,7 @@ export interface CreateInvoiceDraftInput {
 }
 
 export class SevdeskInvoicesService {
-	constructor(private readonly client: SevdeskClient) { }
+	constructor(private readonly client: SevdeskClient) {}
 
 	private toPercentageString(value: number) {
 		if (value < 0 || value > 100) {
@@ -187,10 +187,7 @@ export class SevdeskInvoicesService {
 
 		// Delete old positions one by one before saving new ones
 		for (const pos of existingPositions) {
-			await this.client.delete(
-				`/InvoicePos/${pos.id}`,
-				z.unknown(),
-			);
+			await this.client.delete(`/InvoicePos/${pos.id}`, z.unknown());
 		}
 
 		// Build new positions
