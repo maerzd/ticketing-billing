@@ -5,8 +5,7 @@ import type {
 	BillingRecord,
 	OrganizerRecord,
 } from "@ticketing-billing/types/ddb";
-import { AlertCircle, CheckCircle2, Clock, Copy } from "lucide-react";
-import Link from "next/link";
+import { ChevronDown, Copy } from "lucide-react";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
 import {
@@ -33,8 +32,16 @@ import {
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { calculateBillingAmounts } from "@/lib/billing-calculator";
-import { SALES_TAX_RATE, TICKET_COMMISSION_RATE } from "@/lib/constants";
+import {
+	BILLING_SETUP_FEE_LABEL,
+	BILLING_SYSTEM_FEE_LABEL,
+	BILLING_VARIABLE_FEE_LABEL,
+	SALES_TAX_RATE,
+	TICKET_COMMISSION_RATE,
+} from "@/lib/constants";
 import { formatCurrency } from "@/lib/utils";
+import { BillingActionsCard } from "./billing-actions-card";
+import { BillingDraftCard } from "./billing-draft-card";
 import InvoiceFooter from "./invoice-footer";
 
 export interface InvoiceData {
@@ -138,6 +145,7 @@ export default function Invoice({
 		initialBillingRecord,
 	);
 	const [payoutDialogOpen, setPayoutDialogOpen] = useState(false);
+	const [footerOpen, setFooterOpen] = useState(false);
 
 	const resolvedOfficialPos = officialPos ?? new Set<string>();
 	const resolvedRevenuePerPos = revenuePerPos ?? {};
@@ -155,20 +163,20 @@ export default function Invoice({
 	const invoiceData = {
 		items: [
 			{
-				label: "Systemgebühr",
-				netValue: amounts.systemFee,
+				label: BILLING_SYSTEM_FEE_LABEL,
+				netValue: amounts.systemFeeNet,
 				value: amounts.systemFeeWithTax,
 				tax: SALES_TAX_RATE,
 			},
 			{
-				label: "Vorverkaufsgebühr",
-				netValue: amounts.variableFee,
+				label: BILLING_VARIABLE_FEE_LABEL,
+				netValue: amounts.variableFeeNet,
 				value: amounts.variableFeeWithTax,
 				tax: eventTaxRate,
 			},
 			{
-				label: "Einrichtungsgebühr",
-				netValue: setupFee,
+				label: BILLING_SETUP_FEE_LABEL,
+				netValue: amounts.setupFeeNet,
 				value: amounts.setupFeeWithTax,
 				tax: SALES_TAX_RATE,
 			},
@@ -440,187 +448,84 @@ export default function Invoice({
 
 			{/* DRAFT / NO RECORD: SevDesk create/update section */}
 			{(!billingRecord || invoiceStatus === "DRAFT") && (
-				<div className="my-4 space-y-3 rounded-xl bg-muted/50 p-4 ring-1 ring-muted">
-					<h3 className="font-semibold">
-						{billingRecord
-							? "Entwurf bearbeiten"
-							: "Entwurf in Sevdesk erstellen"}
-					</h3>
-					{organizer === null || !organizerId ? (
-						<p className="text-muted-foreground text-sm">
-							{!organizerId ? (
-								"Kein Veranstalter für diese Veranstaltung konfiguriert."
-							) : (
-								<>
-									Kein Veranstalter gefunden.{" "}
-									<Link href="/organizers" className="underline">
-										Veranstalter anlegen
-									</Link>
-								</>
-							)}
-						</p>
-					) : (
-						<div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-							<div className="w-full sm:max-w-sm">
-								<p className="font-medium text-sm">
-									{organizer.name ??
-										[primaryContact?.firstName, primaryContact?.lastName]
-											.filter(Boolean)
-											.join(" ")}
-								</p>
-								<p className="text-muted-foreground text-sm">
-									{primaryContact?.email ?? organizer.email}
-								</p>
-							</div>
-							<div className="flex gap-2">
-								{billingRecord ? (
-									<>
-										<Button
-											onClick={handleUpdateDraft}
-											disabled={isLoading}
-											variant="outline"
-										>
-											{isLoading ? "Wird aktualisiert..." : "Aktualisieren"}
-										</Button>
-										<Button
-											onClick={handleFinalizeInvoice}
-											disabled={isLoading}
-										>
-											{isLoading
-												? "Wird finalisiert..."
-												: "Rechnung finalisieren"}
-										</Button>
-									</>
-								) : (
-									<Button onClick={handleCreateDraft} disabled={isLoading}>
-										{isLoading
-											? "Entwurf wird erstellt..."
-											: "Entwurf erstellen"}
-									</Button>
-								)}
-							</div>
-						</div>
-					)}
-				</div>
+				<BillingDraftCard
+					organizer={organizer}
+					organizerId={organizerId}
+					billingRecord={billingRecord}
+					isLoading={isLoading}
+					onCreateDraft={handleCreateDraft}
+					onUpdateDraft={handleUpdateDraft}
+					onFinalizeInvoice={handleFinalizeInvoice}
+				/>
 			)}
 
 			{/* OPEN / SENT / PAID: Actions section */}
-			{isReadOnly && (
-				<div className="my-4 space-y-3 rounded-xl bg-muted/50 p-4 ring-1 ring-muted">
-					<h3 className="font-semibold">Abrechnung</h3>
-					<div className="flex flex-wrap gap-3">
-						{invoiceStatus !== "VOID" && (
-							<div className="flex flex-col gap-1">
-								<Button
-									onClick={handleSendEmail}
-									disabled={isLoading || invoiceStatus === "SENT"}
-									variant={invoiceStatus === "SENT" ? "outline" : "default"}
-								>
-									{invoiceStatus === "SENT" ? (
-										<>
-											<CheckCircle2 className="mr-2 h-4 w-4 text-green-600" />
-											E-Mail gesendet
-										</>
-									) : isLoading ? (
-										"Wird gesendet..."
-									) : (
-										"Rechnung per E-Mail senden"
-									)}
-								</Button>
-								{billingRecord?.emailSentAt && (
-									<p className="text-muted-foreground text-xs">
-										{new Date(billingRecord.emailSentAt).toLocaleString(
-											"de-DE",
-										)}
-									</p>
-								)}
-							</div>
-						)}
-
-						{payoutStatus === "PENDING" && organizer && (
-							<Button
-								onClick={() => setPayoutDialogOpen(true)}
-								disabled={isLoading}
-								variant="outline"
-							>
-								Auszahlung auslösen (
-								{formatCurrency((billingRecord?.payoutAmountCents ?? 0) / 100)})
-							</Button>
-						)}
-
-						{payoutStatus === "INITIATED" && (
-							<div className="flex items-center gap-2 rounded-md bg-amber-50 px-3 py-2 text-amber-700 text-sm">
-								<Clock className="h-4 w-4" />
-								Auszahlung in Bearbeitung
-								{billingRecord?.payoutInitiatedAt && (
-									<span className="text-xs">
-										(
-										{new Date(billingRecord.payoutInitiatedAt).toLocaleString(
-											"de-DE",
-										)}
-										)
-									</span>
-								)}
-							</div>
-						)}
-
-						{payoutStatus === "COMPLETED" && (
-							<div className="flex items-center gap-2 rounded-md bg-green-50 px-3 py-2 text-green-700 text-sm">
-								<CheckCircle2 className="h-4 w-4" />
-								Auszahlung abgeschlossen
-								{billingRecord?.payoutCompletedAt && (
-									<span className="text-xs">
-										(
-										{new Date(billingRecord.payoutCompletedAt).toLocaleString(
-											"de-DE",
-										)}
-										)
-									</span>
-								)}
-							</div>
-						)}
-
-						{payoutStatus === "FAILED" && (
-							<div className="flex items-center gap-2 rounded-md bg-red-50 px-3 py-2 text-red-700 text-sm">
-								<AlertCircle className="h-4 w-4" />
-								Auszahlung fehlgeschlagen
-							</div>
-						)}
-					</div>
-				</div>
+			{isReadOnly && billingRecord && (
+				<BillingActionsCard
+					billingRecord={billingRecord}
+					organizer={organizer}
+					isLoading={isLoading}
+					onSendEmail={handleSendEmail}
+					onPayoutClick={() => setPayoutDialogOpen(true)}
+				/>
 			)}
 
 			{/* Invoice Table */}
-			<div>
-				<h3 className="my-4 font-semibold">Rechnungsposten</h3>
-				<div className="rounded-xl bg-muted/50 p-4 ring-1 ring-muted">
+			<div className="mt-4">
+				<p className="mb-2 text-muted-foreground text-xs font-medium uppercase tracking-wide">
+					Rechnungsposten
+				</p>
+				<div className="overflow-hidden rounded-xl bg-muted/50 ring-1 ring-muted">
 					<InvoiceTable invoiceData={invoiceData} />
 				</div>
 			</div>
 
-			{/* Invoice footer */}
-			<h3 className="my-6 font-semibold">Rechnung: Fußzeile</h3>
-			{!isReadOnly && (
-				<Tooltip open={showTooltip} onOpenChange={setShowTooltip}>
-					<TooltipTrigger
-						render={
-							<Button
-								aria-label="Copy to clipboard"
-								className="hover:cursor-pointer"
-								onClick={handleCopy}
-								variant="outline"
-							>
-								<Copy />
-								Kopieren
-							</Button>
-						}
-					/>
-					<TooltipContent>{copied ? "Kopiert!" : "Kopieren"}</TooltipContent>
-				</Tooltip>
-			)}
-			<div className="mt-6 rounded-xl bg-muted/50 p-4 ring-1 ring-muted">
-				<div ref={invoiceTextRef}>
-					<InvoiceFooter invoiceData={invoiceData} />
+			{/* Invoice footer — collapsed by default, always mounted for clipboard */}
+			<div className="mt-6">
+				<div className="flex items-center gap-3">
+					<button
+						type="button"
+						onClick={() => setFooterOpen((v) => !v)}
+						className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+					>
+						<ChevronDown
+							className={`h-4 w-4 transition-transform duration-200 ${footerOpen ? "rotate-180" : ""}`}
+						/>
+						Rechnung: Fußzeile
+					</button>
+					{!isReadOnly && (
+						<Tooltip open={showTooltip} onOpenChange={setShowTooltip}>
+							<TooltipTrigger
+								render={
+									<Button
+										aria-label="Copy to clipboard"
+										size="sm"
+										className="hover:cursor-pointer"
+										onClick={handleCopy}
+										variant="outline"
+									>
+										<Copy className="h-3 w-3" />
+										Kopieren
+									</Button>
+								}
+							/>
+							<TooltipContent>
+								{copied ? "Kopiert!" : "Kopieren"}
+							</TooltipContent>
+						</Tooltip>
+					)}
+				</div>
+				{/* Outer div hidden/shown via CSS — inner div with ref always stays mounted */}
+				<div
+					className={
+						footerOpen
+							? "mt-4 rounded-xl bg-muted/50 p-4 ring-1 ring-muted"
+							: "hidden"
+					}
+				>
+					<div ref={invoiceTextRef}>
+						<InvoiceFooter invoiceData={invoiceData} />
+					</div>
 				</div>
 			</div>
 

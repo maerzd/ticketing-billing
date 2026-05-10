@@ -29,12 +29,14 @@ export default function InvoiceFooter({
 							border: "1pt solid #f0f0f0",
 							borderCollapse: "collapse",
 							borderSpacing: "0",
+							height: "8mm",
 						}}
 					>
 						<td
 							style={{
 								textAlign: "left",
-								padding: "0 4mm",
+								alignContent: "center",
+								padding: "0 1mm",
 								verticalAlign: "top",
 							}}
 						>
@@ -43,7 +45,8 @@ export default function InvoiceFooter({
 						<td
 							style={{
 								textAlign: "right",
-								padding: "0 4mm",
+								alignContent: "center",
+								padding: "0 1mm",
 								verticalAlign: "top",
 							}}
 						>

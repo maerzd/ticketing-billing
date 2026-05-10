@@ -4,17 +4,36 @@ import { sepaTransfers } from "@qonto/embed-sdk/server/sepa-transfers";
 import type { BillingRecord } from "@ticketing-billing/types/ddb";
 import { revalidatePath } from "next/cache";
 import { getAccessToken } from "@/lib/auth";
-import { calculateBillingAmounts } from "@/lib/billing-calculator";
+import {
+	type BillingAmounts,
+	calculateBillingAmounts,
+} from "@/lib/billing-calculator";
+import {
+	BILLING_SETUP_FEE_LABEL,
+	BILLING_SYSTEM_FEE_LABEL,
+	BILLING_VARIABLE_FEE_LABEL,
+	SALES_TAX_RATE,
+} from "@/lib/constants";
 import { BillingRecordsService } from "@/lib/dynamodb/services/billing-records";
 import { AppError } from "@/lib/errors";
 import { ResendEmailService } from "@/lib/resend/services/email";
 import { SevdeskClient } from "@/lib/sevdesk/client";
+import type { CreateInvoiceDraftInput } from "@/lib/sevdesk/services/invoices";
 import { SevdeskInvoicesService } from "@/lib/sevdesk/services/invoices";
 
 const billingRecordsService = new BillingRecordsService();
 const sevdeskClient = new SevdeskClient();
 const sevdeskInvoicesService = new SevdeskInvoicesService(sevdeskClient);
 const emailService = new ResendEmailService();
+
+const BILLING_INVOICE_TIME_TO_PAY = 14;
+const BILLING_INVOICE_HEADER = "Rechnung";
+const BILLING_INVOICE_HEAD_TEXT =
+	"<p>\n    Sehr geehrte Damen und Herren,\n</p>\n<p>\n    wir erlauben uns, von den Einnahmen Ihrer Veranstaltung unsere Gebühren abzuziehen und zahlen den Restbetrag an Sie aus. Im Folgenden finden Sie eine detaillierte Ausführung der einzelnen Positionen.\n</p>";
+
+function toCents(euros: number): number {
+	return Math.round(euros * 100);
+}
 
 function actionError(error: unknown, fallback: string) {
 	const message =
@@ -26,16 +45,13 @@ function actionError(error: unknown, fallback: string) {
 }
 
 // ---------------------------------------------------------------------------
-// createBillingDraft
+// Shared draft input (create + update share a common base)
 // ---------------------------------------------------------------------------
 
-export interface CreateBillingDraftInput {
+export interface BillingDraftInput {
 	organizerId: string;
 	eventId: string;
-	eventName: string;
-	organizerName: string;
 	organizerContactId: string;
-	organizerEmail: string;
 	organizerAddressName?: string;
 	organizerAddressStreet?: string;
 	organizerAddressZip?: string;
@@ -53,9 +69,85 @@ export interface CreateBillingDraftInput {
 	invoiceFootHtml: string;
 }
 
+/** Additional fields required only when creating a record for the first time */
+export interface CreateBillingDraftInput extends BillingDraftInput {
+	eventName: string;
+	organizerName: string;
+	organizerEmail: string;
+}
+
+export type UpdateBillingDraftInput = BillingDraftInput;
+
+// ---------------------------------------------------------------------------
+// Private helpers
+// ---------------------------------------------------------------------------
+
+function buildSevdeskDraftInput(
+	amounts: BillingAmounts,
+	input: BillingDraftInput,
+): CreateInvoiceDraftInput {
+	return {
+		organizerContactId: input.organizerContactId,
+		invoiceDate: input.invoiceDate,
+		timeToPay: BILLING_INVOICE_TIME_TO_PAY,
+		header: BILLING_INVOICE_HEADER,
+		headText: BILLING_INVOICE_HEAD_TEXT,
+		footText: input.invoiceFootHtml,
+		items: [
+			{
+				name: BILLING_SYSTEM_FEE_LABEL,
+				quantity: 1,
+				price: amounts.systemFeeNet,
+				taxRate: SALES_TAX_RATE,
+			},
+			{
+				name: BILLING_VARIABLE_FEE_LABEL,
+				quantity: 1,
+				price: amounts.variableFeeNet,
+				taxRate: input.eventTaxRate,
+			},
+			{
+				name: BILLING_SETUP_FEE_LABEL,
+				quantity: 1,
+				price: amounts.setupFeeNet,
+				taxRate: SALES_TAX_RATE,
+			},
+		],
+		addressName: input.organizerAddressName,
+		addressStreet: input.organizerAddressStreet,
+		addressZip: input.organizerAddressZip,
+		addressCity: input.organizerAddressCity,
+		addressCountry: input.organizerAddressCountry,
+		address: input.organizerAddressName
+			? `${input.organizerAddressName}\n${input.organizerAddressStreet ?? ""}\n${input.organizerAddressZip ?? ""} ${input.organizerAddressCity ?? ""}`
+			: undefined,
+	};
+}
+
+function buildBillingRecordAmounts(
+	amounts: BillingAmounts,
+	input: BillingDraftInput,
+) {
+	return {
+		eventTaxRate: input.eventTaxRate,
+		setupFee: toCents(amounts.setupFeeNet),
+		ticketCommissionRate: input.ticketCommissionRate,
+		officialPos: input.officialPos,
+		totalRevenueCents: toCents(input.totalRevenue),
+		invoiceAmountCents: toCents(amounts.invoiceAmount),
+		invoiceNetCents: toCents(amounts.netInvoiceAmount),
+		payoutAmountCents: toCents(amounts.payoutAmount),
+		ticketsCount: input.ticketsCount,
+		revenueOrganizerCents: toCents(amounts.revenueOrganizer),
+	};
+}
+
+// ---------------------------------------------------------------------------
+// createBillingDraft
+// ---------------------------------------------------------------------------
+
 export async function createBillingDraft(input: CreateBillingDraftInput) {
 	try {
-		// Guard: no existing record
 		const existing = await billingRecordsService.getBillingRecord(
 			input.organizerId,
 			input.eventId,
@@ -65,61 +157,19 @@ export async function createBillingDraft(input: CreateBillingDraftInput) {
 			throw new AppError("A billing record for this event already exists", 409);
 		}
 
-		const officialPosSet = new Set(input.officialPos);
 		const amounts = calculateBillingAmounts({
 			totalRevenue: input.totalRevenue,
 			ticketsCount: input.ticketsCount,
 			revenuePerPos: input.revenuePerPos,
-			officialPos: officialPosSet,
+			officialPos: new Set(input.officialPos),
 			eventTaxRate: input.eventTaxRate,
 			setupFee: input.setupFee,
 			ticketCommissionRate: input.ticketCommissionRate,
 		});
 
-		const invoiceItems = [
-			{
-				label: "Systemgebühr",
-				netValue: amounts.systemFee,
-				value: amounts.systemFeeWithTax,
-				tax: 0.19,
-			},
-			{
-				label: "Vorverkaufsgebühr",
-				netValue: amounts.variableFee,
-				value: amounts.variableFeeWithTax,
-				tax: input.eventTaxRate,
-			},
-			{
-				label: "Einrichtungsgebühr",
-				netValue: input.setupFee,
-				value: amounts.setupFeeWithTax,
-				tax: 0.19,
-			},
-		];
-
-		const invoice = await sevdeskInvoicesService.createInvoiceDraft({
-			organizerContactId: input.organizerContactId,
-			invoiceDate: input.invoiceDate,
-			timeToPay: 14,
-			items: invoiceItems.map((item) => ({
-				name: item.label,
-				quantity: 1,
-				price: item.value,
-				taxRate: item.tax,
-			})),
-			header: "Rechnung Nr. [%RECHNUNGSNUMMER%]",
-			headText:
-				"<p>\n    Sehr geehrte Damen und Herren,\n</p>\n<p>\n    wir erlauben uns, von den Einnahmen Ihrer Veranstaltung unsere Gebühren abzuziehen und zahlen den Restbetrag an Sie aus. Im Folgenden finden Sie eine detaillierte Ausführung der einzelnen Positionen.\n</p>",
-			footText: input.invoiceFootHtml,
-			addressName: input.organizerAddressName,
-			addressStreet: input.organizerAddressStreet,
-			addressZip: input.organizerAddressZip,
-			addressCity: input.organizerAddressCity,
-			addressCountry: input.organizerAddressCountry,
-			address: input.organizerAddressName
-				? `${input.organizerAddressName}\n${input.organizerAddressStreet ?? ""}\n${input.organizerAddressZip ?? ""} ${input.organizerAddressCity ?? ""}`
-				: undefined,
-		});
+		const invoice = await sevdeskInvoicesService.createInvoiceDraft(
+			buildSevdeskDraftInput(amounts, input),
+		);
 
 		const record = await billingRecordsService.createBillingRecord({
 			organizerId: input.organizerId,
@@ -130,16 +180,7 @@ export async function createBillingDraft(input: CreateBillingDraftInput) {
 			payoutStatus: "PENDING",
 			sevdeskInvoiceId: invoice.id,
 			sevdeskInvoiceNumber: invoice.invoiceNumber ?? undefined,
-			eventTaxRate: input.eventTaxRate,
-			setupFee: Math.round(input.setupFee * 100),
-			ticketCommissionRate: input.ticketCommissionRate,
-			officialPos: input.officialPos,
-			totalRevenueCents: amounts.totalRevenueCents,
-			invoiceAmountCents: amounts.invoiceAmountCents,
-			invoiceNetCents: amounts.invoiceNetCents,
-			payoutAmountCents: amounts.payoutAmountCents,
-			ticketsCount: input.ticketsCount,
-			revenueOrganizerCents: amounts.revenueOrganizerCents,
+			...buildBillingRecordAmounts(amounts, input),
 		});
 
 		revalidatePath(`/events/${input.eventId}`);
@@ -154,27 +195,6 @@ export async function createBillingDraft(input: CreateBillingDraftInput) {
 // ---------------------------------------------------------------------------
 // updateBillingDraft
 // ---------------------------------------------------------------------------
-
-export interface UpdateBillingDraftInput {
-	organizerId: string;
-	eventId: string;
-	organizerContactId: string;
-	organizerAddressName?: string;
-	organizerAddressStreet?: string;
-	organizerAddressZip?: string;
-	organizerAddressCity?: string;
-	organizerAddressCountry?: string;
-	totalRevenue: number;
-	ticketsCount: number;
-	revenuePerPos: Record<string, number>;
-	officialPos: string[];
-	eventTaxRate: number;
-	/** Setup fee in euros */
-	setupFee: number;
-	ticketCommissionRate: number;
-	invoiceDate: string;
-	invoiceFootHtml: string;
-}
 
 export async function updateBillingDraft(input: UpdateBillingDraftInput) {
 	try {
@@ -198,68 +218,25 @@ export async function updateBillingDraft(input: UpdateBillingDraftInput) {
 			throw new AppError("No SevDesk invoice ID on record", 500);
 		}
 
-		const officialPosSet = new Set(input.officialPos);
 		const amounts = calculateBillingAmounts({
 			totalRevenue: input.totalRevenue,
 			ticketsCount: input.ticketsCount,
 			revenuePerPos: input.revenuePerPos,
-			officialPos: officialPosSet,
+			officialPos: new Set(input.officialPos),
 			eventTaxRate: input.eventTaxRate,
 			setupFee: input.setupFee,
 			ticketCommissionRate: input.ticketCommissionRate,
 		});
 
-		await sevdeskInvoicesService.updateInvoiceDraft(record.sevdeskInvoiceId, {
-			organizerContactId: input.organizerContactId,
-			invoiceDate: input.invoiceDate,
-			timeToPay: 14,
-			items: [
-				{
-					name: "Systemgebühr",
-					quantity: 1,
-					price: amounts.systemFeeWithTax,
-					taxRate: 0.19,
-				},
-				{
-					name: "Vorverkaufsgebühr",
-					quantity: 1,
-					price: amounts.variableFeeWithTax,
-					taxRate: input.eventTaxRate,
-				},
-				{
-					name: "Einrichtungsgebühr",
-					quantity: 1,
-					price: amounts.setupFeeWithTax,
-					taxRate: 0.19,
-				},
-			],
-			header: "Rechnung Nr. [%RECHNUNGSNUMMER%]",
-			headText:
-				"<p>\n    Sehr geehrte Damen und Herren,\n</p>\n<p>\n    wir erlauben uns, von den Einnahmen Ihrer Veranstaltung unsere Gebühren abzuziehen und zahlen den Restbetrag an Sie aus. Im Folgenden finden Sie eine detaillierte Ausführung der einzelnen Positionen.\n</p>",
-			footText: input.invoiceFootHtml,
-			addressName: input.organizerAddressName,
-			addressStreet: input.organizerAddressStreet,
-			addressZip: input.organizerAddressZip,
-			addressCity: input.organizerAddressCity,
-			addressCountry: input.organizerAddressCountry,
-			address: input.organizerAddressName
-				? `${input.organizerAddressName}\n${input.organizerAddressStreet ?? ""}\n${input.organizerAddressZip ?? ""} ${input.organizerAddressCity ?? ""}`
-				: undefined,
-		});
+		await sevdeskInvoicesService.updateInvoiceDraft(
+			record.sevdeskInvoiceId,
+			buildSevdeskDraftInput(amounts, input),
+		);
 
 		const updated = await billingRecordsService.updateBillingRecord({
 			organizerId: input.organizerId,
 			eventId: input.eventId,
-			eventTaxRate: input.eventTaxRate,
-			setupFee: Math.round(input.setupFee * 100),
-			ticketCommissionRate: input.ticketCommissionRate,
-			officialPos: input.officialPos,
-			totalRevenueCents: amounts.totalRevenueCents,
-			invoiceAmountCents: amounts.invoiceAmountCents,
-			invoiceNetCents: amounts.invoiceNetCents,
-			payoutAmountCents: amounts.payoutAmountCents,
-			ticketsCount: input.ticketsCount,
-			revenueOrganizerCents: amounts.revenueOrganizerCents,
+			...buildBillingRecordAmounts(amounts, input),
 		});
 
 		revalidatePath(`/events/${input.eventId}`);

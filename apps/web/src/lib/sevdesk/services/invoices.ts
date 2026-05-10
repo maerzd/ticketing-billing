@@ -6,7 +6,6 @@ import {
 	type SevdeskInvoicePdfResponse,
 	SevdeskInvoicePdfResponseSchema,
 	SevdeskInvoicePosCreateSchema,
-	SevdeskInvoicePositionsResponseSchema,
 	SevdeskNextInvoiceNumberResponseSchema,
 	SevdeskSaveInvoiceResponseSchema,
 	SevdeskSaveInvoiceSchema,
@@ -16,6 +15,16 @@ import { z } from "zod";
 import env from "@/env";
 import { AppError } from "@/lib/errors";
 import type { SevdeskClient } from "@/lib/sevdesk/client";
+
+const SevdeskInvoicePositionsForUpdateSchema = z.object({
+	objects: z.array(
+		z
+			.object({
+				id: z.coerce.string(),
+			})
+			.passthrough(),
+	),
+});
 
 export interface CreateInvoiceDraftInput {
 	/** Sevdesk contact ID for the organizer/customer */
@@ -43,7 +52,7 @@ export interface CreateInvoiceDraftInput {
 }
 
 export class SevdeskInvoicesService {
-	constructor(private readonly client: SevdeskClient) {}
+	constructor(private readonly client: SevdeskClient) { }
 
 	private toPercentageString(value: number) {
 		if (value < 0 || value > 100) {
@@ -133,6 +142,7 @@ export class SevdeskInvoicesService {
 			invoiceType: "RE", // Standard invoice
 			currency: "EUR",
 			timeToPay: input.timeToPay,
+			showNet: true,
 			header: input.header,
 			headText: input.headText,
 			footText: input.footText,
@@ -169,7 +179,7 @@ export class SevdeskInvoicesService {
 		// Fetch existing positions so we can delete them individually first
 		const existingPosResponse = await this.client.get(
 			`/Invoice/${invoiceId}/getPositions`,
-			SevdeskInvoicePositionsResponseSchema,
+			SevdeskInvoicePositionsForUpdateSchema,
 			{},
 		);
 
@@ -216,6 +226,7 @@ export class SevdeskInvoicesService {
 			invoiceType: "RE",
 			currency: "EUR",
 			timeToPay: input.timeToPay,
+			showNet: true,
 			header: input.header,
 			headText: input.headText,
 			footText: input.footText,
