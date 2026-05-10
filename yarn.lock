@@ -4769,7 +4769,7 @@ __metadata:
     recharts: "npm:3.8.1"
     resend: "npm:^6.12.2"
     server-only: "npm:^0.0.1"
-    shadcn: "npm:^4.5.0"
+    shadcn: "npm:^4.7.0"
     sonner: "npm:^2.0.7"
     tailwind-merge: "npm:^3.5.0"
     tailwindcss: "npm:^4.2.4"
@@ -9085,9 +9085,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"shadcn@npm:^4.5.0":
-  version: 4.5.0
-  resolution: "shadcn@npm:4.5.0"
+"shadcn@npm:^4.7.0":
+  version: 4.7.0
+  resolution: "shadcn@npm:4.7.0"
   dependencies:
     "@babel/core": "npm:^7.28.0"
     "@babel/parser": "npm:^7.28.0"
@@ -9125,7 +9125,7 @@ __metadata:
     zod-to-json-schema: "npm:^3.24.6"
   bin:
     shadcn: dist/index.js
-  checksum: 10c0/c9e585df0bf6040d9c630654381de30268bb805c559051c95cc97af02728cd57a9ea229247d7a70456b30085f64ba78158aafd8cd2382e16a784e33bece2b818
+  checksum: 10c0/0766956e9f15d4755b6e9ee2a0ce231c6c251c6ae5e9611bfe8fffda91359c411720dc64a2f64981cc25f17687b9a81f3684d59ba169b5d3d482feedb5d6d08e
   languageName: node
   linkType: hard
 
