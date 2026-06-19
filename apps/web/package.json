@@ -18,7 +18,7 @@
 		"@hookform/resolvers": "^5.2.2",
 		"@qonto/embed-sdk": "^0.69.0",
 		"@ticketing-billing/types": "workspace:*",
-		"@vercel/oidc-aws-credentials-provider": "^3.0.8",
+		"@vercel/oidc-aws-credentials-provider": "^3.1.4",
 		"@workos-inc/authkit-nextjs": "^4.0.1",
 		"@workos-inc/node": "^9.1.1",
 		"class-variance-authority": "^0.7.1",
