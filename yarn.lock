@@ -4756,7 +4756,7 @@ __metadata:
     "@types/react": "npm:^19.2.14"
     "@types/react-dom": "npm:^19.2.3"
     "@vercel/oidc-aws-credentials-provider": "npm:^3.0.8"
-    "@workos-inc/authkit-nextjs": "npm:^4.0.1"
+    "@workos-inc/authkit-nextjs": "npm:^4.1.1"
     "@workos-inc/node": "npm:^9.1.1"
     class-variance-authority: "npm:^0.7.1"
     clsx: "npm:^2.1.1"
@@ -5151,9 +5151,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@workos-inc/authkit-nextjs@npm:^4.0.1":
-  version: 4.0.1
-  resolution: "@workos-inc/authkit-nextjs@npm:4.0.1"
+"@workos-inc/authkit-nextjs@npm:^4.1.1":
+  version: 4.1.1
+  resolution: "@workos-inc/authkit-nextjs@npm:4.1.1"
   dependencies:
     "@sindresorhus/fnv1a": "npm:^3.1.0"
     "@workos-inc/node": "npm:^9.0.0"
@@ -5165,7 +5165,7 @@ __metadata:
     next: ^13.5.9 || ^14.2.26 || ^15.2.3 || ^16
     react: ^18.0 || ^19.0.0
     react-dom: ^18.0 || ^19.0.0
-  checksum: 10c0/f59614cf0c65f9ac6ce67110acbbb40b4c6653b716fcea6ad1b748ffc871694b72e3f0feaaa496d1315b9faee232ca32fe71aa391817260e8ce460c566a145da
+  checksum: 10c0/94b17af358ab189c48f61b4a8e81f75d4fa4703cd63833b34cfb44f1e8c4c52fd647c1a2e5853376ef15ec095ead27c3ec41a641c0251f20595a5dda17c7a999
   languageName: node
   linkType: hard
 
